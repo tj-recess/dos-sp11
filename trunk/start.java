@@ -99,7 +99,9 @@ public class start {
 					public void run()
 					{ 
 						try {
+							System.out.println("Server waiting for client's request(s)");
 							actualServer = me.accept();
+							System.out.println("Server accepted client's request!");
 						} catch (IOException e) {
 							System.out.println("start.java : not able to connect to actual server...");
 						}
@@ -112,14 +114,23 @@ public class start {
 			Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
 					
 			//client (actual server) got started hopefully, now try to get it's port
-			while(actualServer == null);	//hoping to connect pretty soon here, otherwise will have to wait()
+			while(actualServer == null)
+			{
+				System.out.println("ActualServer still not connected");
+				try{Thread.sleep(200);}	//hoping to connect pretty soon here, otherwise will have to wait()
+				catch(InterruptedException iex){/*ignore*/}
+			}
 			ObjectInputStream ois = new ObjectInputStream(actualServer.getInputStream());
-			serverPort = ois.readInt();
+			System.out.println("DEBUG:Got OIS, now waiting for server to send port");
+			serverPort = (Integer)ois.readObject();
 			
 		}
+		catch(ClassNotFoundException cnfe){cnfe.printStackTrace();System.exit(-1);}	//DEBUG
 		catch(IOException ioex)
 		{
-			System.err.println("start.java : can't start server on remote host : " + server + " **Exception : " + ioex.toString());
+			System.err.println("start.java :FATAL: can't start communicating with remote host : " + server + " **Exception : " + ioex.toString());
+			ioex.printStackTrace();	//DEBUG
+			System.exit(-1);
 		}
 		return serverPort;
 	}

@@ -37,7 +37,8 @@ public class Client
 		}
 		
 		//set client's sleep time
-		cSleepTime = Integer.parseInt(sysProp.getProperty("RW." + cType + cNum));
+		System.out.println("DEBUG: " + sysProp.getProperty("RW." + cType + cNum + ".sleepTime"));
+		cSleepTime = Integer.parseInt(sysProp.getProperty("RW." + cType + cNum + ".sleepTime"));
 	}
 	
 	public static void main(String[] args)
