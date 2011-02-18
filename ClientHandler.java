@@ -13,6 +13,7 @@ public class ClientHandler implements Runnable
 	{
 		try
 		{
+			//starting my own log files
 			in = new ObjectInputStream(aClient.getInputStream());	
 			out = new ObjectOutputStream(aClient.getOutputStream());
 		}
@@ -33,8 +34,10 @@ public class ClientHandler implements Runnable
 		 */
 		try 
 		{
+			System.out.println("DEBUG: ClientHandler is all set, waiting for args from client");
 			String reqType = (String)in.readObject();
 			int cNum = in.readInt();
+			System.out.println("DEBUG: received vals from client - reqType = " + reqType + ", clientNum = " + cNum);
 			if(reqType.equals("read"))
 			{
 				/*

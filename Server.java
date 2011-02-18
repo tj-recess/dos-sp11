@@ -41,6 +41,8 @@ public class Server implements Runnable
 		writerActive = false;
 		READ_CONDITION = new Object();
 		WRITE_CONDITION = new Object();
+		readers = new ArrayList<RW>();
+		writers = new ArrayList<RW>();
 	}
 	
 	public Server()
@@ -84,7 +86,7 @@ public class Server implements Runnable
 			String readerName = sysProp.getProperty(readerKey);	//reader/writer's name starts from 1 to n (not 0 to n-1)
 			String opTime = sysProp.getProperty(readerKey + ".opTime");
 			String sleepTime = sysProp.getProperty(readerKey + ".sleepTime");
-			System.out.println("DEBUG: Config : " + readerKey + ", " + opTime + ", " + sleepTime);
+			System.out.println("DEBUG: Config : " + readerName + ", " + opTime + ", " + sleepTime);
 			readers.add(new RW(readerName, Integer.parseInt(opTime), Integer.parseInt(sleepTime), i));	
 		}
 		//setup writers from config file
@@ -94,6 +96,8 @@ public class Server implements Runnable
 			String writerName = sysProp.getProperty(writerKey);	//reader/writer's name starts from (numReaders + 1) to n (not 0 to n-1)
 			String opTime = sysProp.getProperty(writerKey + ".opTime");
 			String sleepTime = sysProp.getProperty(writerKey + ".sleepTime");
+			System.out.println("DEBUG: Config : " + writerKey + ", " + opTime + ", " + sleepTime);
+			System.out.println("DEBUG: Config : " + writerName + ", " + opTime + ", " + sleepTime);
 			writers.add(new RW(writerName, Integer.parseInt(opTime), Integer.parseInt(sleepTime), i));
 		}		
 	}
@@ -108,7 +112,9 @@ public class Server implements Runnable
 		{
 			while(true)
 			{
+				System.out.println("DEBUG: waiting for connection(s) from client(s)");
 				Socket client = ss.accept();
+				System.out.println("DEBUG: got a new client, starting in another clienthandler thread");
 				new Thread(new ClientHandler(client)).start();
 			}
 		}
@@ -131,11 +137,9 @@ public class Server implements Runnable
 		 * then send my new port (server port) to start.java which will
 		 * in turn instantiate the clients
 		 */
-		
 		Socket startSocket = null;
 		try {
 			startSocket = new Socket(args[0], Integer.parseInt(args[1]));
-			System.out.println("DEBUG://connection established, now start actual server");
 		} catch (NumberFormatException e) {
 			System.err.println("Actual Server : bad port received from start.java, exception = " + e.toString());
 		} catch (UnknownHostException e) {
@@ -146,7 +150,8 @@ public class Server implements Runnable
 		
 		//connection established, now start actual server
 		System.out.println("DEBUG://connection established, now start actual server");
-
+		System.out.println("DEBUG: Actual Server recieved args[0] = " + args[0] + ", args[1] = " + args[1]);
+		
 		Server aServer = new Server();
 
 		//server started, now start accepting clients indefinitely

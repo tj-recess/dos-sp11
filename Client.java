@@ -37,7 +37,7 @@ public class Client
 		}
 		
 		//set client's sleep time
-		System.out.println("DEBUG: " + sysProp.getProperty("RW." + cType + cNum + ".sleepTime"));
+		System.out.println("DEBUG: RW." + cType + cNum + ".sleepTime = " + sysProp.getProperty("RW." + cType + cNum + ".sleepTime"));
 		cSleepTime = Integer.parseInt(sysProp.getProperty("RW." + cType + cNum + ".sleepTime"));
 	}
 	
@@ -48,13 +48,15 @@ public class Client
 			System.err.println("Usage : Client <reader | writer>  <clientNumber> <numAccesses> <serverhost> <serverport>");
 			System.exit(-1);
 		}
-		
+		System.out.println("My values receieved from start.java - " + args[0] + ", " + args[1] + ", " + args[2]);
 		Client aClient = new Client(args[0], args[1], args[2]);
 		//now try connecting to server
 
 		try
 		{
+			System.out.println("DEBUG: received arguments from start.java = " + args[3] + ", " + args[4]);
 			aClient.connectToServer(args[3], args[4]);
+			System.out.println("Connected to Server, now attempting to talk");
 		}
 		catch (NumberFormatException e) {
 			System.err.println("Client : bad port received from start.java, exception = " + e.toString());
@@ -79,7 +81,7 @@ public class Client
 		try {
 			ObjectInputStream ois = new ObjectInputStream(myServer.getInputStream());
 			ObjectOutputStream oos = new ObjectOutputStream(myServer.getOutputStream());
-			
+			System.out.println("DEBUG: Got streams from server's socket, now sending data");
 			if(cType.equals("reader"))
 			{
 				/*
@@ -90,6 +92,8 @@ public class Client
 				{
 					oos.writeObject("read");
 					oos.writeInt(cNum);
+					oos.flush();
+					System.out.println("DEBUG: sent data to server, waiting for response");
 					int myRequestNum = ois.readInt();
 					int valueReceived = ois.readInt();
 					int myServiceNum = ois.readInt();
@@ -119,6 +123,8 @@ public class Client
 				{
 					oos.writeObject("write");
 					oos.writeInt(cNum);
+					oos.flush();
+					System.out.println("DEBUG: sent data to server, waiting for response");
 					int myRequestNum = ois.readInt();
 					int myServiceNum = ois.readInt();
 					try
