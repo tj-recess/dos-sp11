@@ -80,17 +80,20 @@ public class Server implements Runnable
 		//setup readers from config file
 		for(int i = 0; i < numReaders; i++)
 		{
-			String readerName = sysProp.getProperty("RW.reader" + (i + 1));	//reader/writer's name starts from 1 to n (not 0 to n-1)
-			String opTime = sysProp.getProperty(readerName + ".opTime");
-			String sleepTime = sysProp.getProperty(readerName + ".sleepTime");
+			String readerKey = "RW.reader" + (i + 1);
+			String readerName = sysProp.getProperty(readerKey);	//reader/writer's name starts from 1 to n (not 0 to n-1)
+			String opTime = sysProp.getProperty(readerKey + ".opTime");
+			String sleepTime = sysProp.getProperty(readerKey + ".sleepTime");
+			System.out.println("DEBUG: Config : " + readerKey + ", " + opTime + ", " + sleepTime);
 			readers.add(new RW(readerName, Integer.parseInt(opTime), Integer.parseInt(sleepTime), i));	
 		}
 		//setup writers from config file
 		for(int i = numReaders; i < numReaders + numWriters; i++)
 		{
-			String writerName = sysProp.getProperty("RW.writer" + (i + 1));	//reader/writer's name starts from (numReaders + 1) to n (not 0 to n-1)
-			String opTime = sysProp.getProperty(writerName + ".opTime");
-			String sleepTime = sysProp.getProperty(writerName + ".sleepTime");
+			String writerKey = "RW.writer" + (i + 1);
+			String writerName = sysProp.getProperty(writerKey);	//reader/writer's name starts from (numReaders + 1) to n (not 0 to n-1)
+			String opTime = sysProp.getProperty(writerKey + ".opTime");
+			String sleepTime = sysProp.getProperty(writerKey + ".sleepTime");
 			writers.add(new RW(writerName, Integer.parseInt(opTime), Integer.parseInt(sleepTime), i));
 		}		
 	}
