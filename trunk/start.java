@@ -61,9 +61,9 @@ public class start {
 		//now start clients on remote machines
 		String path = System.getProperty("user.dir"); // get current directory of the user
 		
-		for(int i = 0; i < numReaders; i++)
+		for(int i = 1; i <= numReaders; i++)
 		{
-			String readerName = sysProp.getProperty("RW.reader" + (i + 1));	//reader/writer's name starts from 1 to n (not 0 to n-1)
+			String readerName = sysProp.getProperty("RW.reader" + (i));	//reader/writer's name starts from 1 to n (not 0 to n-1)
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + readerName + " cd " + path + " ; java Client reader " + i + " " + numAccesses + " " + server + " " + serverPort);
 				new Thread(new ClientOutputStreamReader(remote, readerName, "input")).start();
@@ -73,9 +73,9 @@ public class start {
 			}
 		}
 		
-		for(int i = numReaders; i < numReaders + numWriters; i++)
+		for(int i = numReaders+1; i <= numReaders + numWriters; i++)
 		{
-			String writerName = sysProp.getProperty("RW.writer" + (i + 1));	//reader/writer's name starts from (numReaders + 1) to n (not 0 to n-1)
+			String writerName = sysProp.getProperty("RW.writer" + i);	//reader/writer's name starts from (numReaders + 1) to n (not 0 to n-1)
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + writerName + " cd " + path + " ; java Client writer " + i + " " + numAccesses + " " + server + " " + serverPort);
 				new Thread(new ClientOutputStreamReader(remote, writerName, "input")).start();
@@ -125,6 +125,7 @@ public class start {
 			ObjectInputStream ois = new ObjectInputStream(actualServer.getInputStream());
 			System.out.println("DEBUG:Got OIS, now waiting for server to send port");
 			serverPort = (Integer)ois.readObject();
+			System.out.println("DEBUG:Got port = "+ serverPort);
 			
 		}
 		catch(ClassNotFoundException cnfe){cnfe.printStackTrace();System.exit(-1);}	//DEBUG
