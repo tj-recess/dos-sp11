@@ -55,6 +55,7 @@ public class Server implements Runnable
 		catch (IOException ioex)
 		{
 			System.err.println("Can't start server, terminating... : Exception** : " + ioex.getMessage());
+			ioex.printStackTrace();	//DEBUG
 			System.exit(-1);
 		}
 	}
@@ -116,6 +117,7 @@ public class Server implements Runnable
 	}
 	public static void main(String[] args)
 	{
+		System.out.println("Inside MAIN of Server.java");
 		if(args.length < 2)
 		{
 			System.err.println("Usage : java Server <host> <port>");
@@ -130,6 +132,7 @@ public class Server implements Runnable
 		Socket startSocket = null;
 		try {
 			startSocket = new Socket(args[0], Integer.parseInt(args[1]));
+			System.out.println("DEBUG://connection established, now start actual server");
 		} catch (NumberFormatException e) {
 			System.err.println("Actual Server : bad port received from start.java, exception = " + e.toString());
 		} catch (UnknownHostException e) {
@@ -139,8 +142,13 @@ public class Server implements Runnable
 		}
 		
 		//connection established, now start actual server
+		System.out.println("DEBUG://connection established, now start actual server");
+
 		Server aServer = new Server();
+
 		//server started, now start accepting clients indefinitely
+		System.out.println("DEBUG://server started, now start accepting clients indefinitely");
+
 		new Thread(aServer).start();
 		
 		//actual server started, now send actual port to start.java
@@ -148,7 +156,7 @@ public class Server implements Runnable
 		ObjectOutputStream oos;
 		try {
 			oos = new ObjectOutputStream(startSocket.getOutputStream());
-			oos.writeInt(aServer.port);
+			oos.writeObject(new Integer(aServer.port));
 			oos.flush();
 		} catch (IOException ioex) 
 		{
