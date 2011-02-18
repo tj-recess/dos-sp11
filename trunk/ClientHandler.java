@@ -1,6 +1,8 @@
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.Socket;
 
 
@@ -8,14 +10,19 @@ public class ClientHandler implements Runnable
 {
 	private ObjectInputStream in;
 	private ObjectOutputStream out;
+	private PrintWriter fout = null;
 	
 	public ClientHandler(Socket aClient)
 	{
 		try
 		{
+			try{fout = new PrintWriter(new FileWriter("CH" + this.hashCode() + ".log"), true);}
+			catch(IOException ioex){System.out.println("Can't write to log file at Client Handler " + "CH" + this.hashCode() + ".log" + "**Exception** : " + ioex.toString());}
 			//starting my own log files
+			fout.println("ClientHandler:started for aClient, setting up streams");
 			in = new ObjectInputStream(aClient.getInputStream());	
 			out = new ObjectOutputStream(aClient.getOutputStream());
+			fout.println("ClientHandler: received streams, now ready to get data");
 		}
 		catch (IOException ioex) 
 		{
@@ -34,10 +41,10 @@ public class ClientHandler implements Runnable
 		 */
 		try 
 		{
-			System.out.println("DEBUG: ClientHandler is all set, waiting for args from client");
+			fout.println("DEBUG: ClientHandler is all set, waiting for args from client");
 			String reqType = (String)in.readObject();
 			int cNum = in.readInt();
-			System.out.println("DEBUG: received vals from client - reqType = " + reqType + ", clientNum = " + cNum);
+			fout.println("DEBUG: received vals from client - reqType = " + reqType + ", clientNum = " + cNum);
 			if(reqType.equals("read"))
 			{
 				/*
