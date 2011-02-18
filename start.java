@@ -111,7 +111,9 @@ public class start {
 			//first start client (actual server)
 			String path = System.getProperty("user.dir");
 			System.out.println("me.getInetAddress().getHostName(), me.getLocalPort()" + me.getInetAddress().getHostName() + ", " + me.getLocalPort());
-			Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
+			Process actualServerProcess = Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
+			new Thread(new ClientOutputStreamReader(actualServerProcess, "ActualServer", "input")).start();
+			new Thread(new ClientOutputStreamReader(actualServerProcess, "ActualServer", "error")).start();
 					
 			//client (actual server) got started hopefully, now try to get it's port
 			while(actualServer == null)
