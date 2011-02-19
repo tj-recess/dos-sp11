@@ -65,8 +65,8 @@ public class start {
 			String readerName = sysProp.getProperty("RW.reader" + (i));	//reader/writer's name starts from 1 to n (not 0 to n-1)
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + readerName + " cd " + path + " ; java Client reader " + i + " " + numAccesses + " " + server + " " + serverPort);
-				new Thread(new ClientOutputStreamReader(remote, readerName, "input")).start();
-				new Thread(new ClientOutputStreamReader(remote, readerName, "error")).start();
+				//new Thread(new ClientOutputStreamReader(remote, readerName, "input")).start();
+				//new Thread(new ClientOutputStreamReader(remote, readerName, "error")).start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote reader client : " + readerName );
 			}
@@ -77,8 +77,8 @@ public class start {
 			String writerName = sysProp.getProperty("RW.writer" + i);	//reader/writer's name starts from (numReaders + 1) to n (not 0 to n-1)
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + writerName + " cd " + path + " ; java Client writer " + i + " " + numAccesses + " " + server + " " + serverPort);
-				new Thread(new ClientOutputStreamReader(remote, writerName, "input")).start();
-				new Thread(new ClientOutputStreamReader(remote, writerName, "error")).start();
+				//new Thread(new ClientOutputStreamReader(remote, writerName, "input")).start();
+				//new Thread(new ClientOutputStreamReader(remote, writerName, "error")).start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote writer client : " + writerName);
 			}
@@ -110,7 +110,7 @@ public class start {
 			//first start client (actual server)
 			String path = System.getProperty("user.dir");
 //			System.out.println("me.getInetAddress().getHostName(), me.getLocalPort()" + me.getInetAddress().getHostName() + ", " + me.getLocalPort());
-			Process actualServerProcess = Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
+			Process actualServerProcess = Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; javac Server.java ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
 			new Thread(new ClientOutputStreamReader(actualServerProcess, "", "input")).start();	//leaving 2nd arg blank to 
 			new Thread(new ClientOutputStreamReader(actualServerProcess, "", "error")).start();	//avoid printing any name before output
 					
@@ -121,7 +121,7 @@ public class start {
 				try{Thread.sleep(1000);}	//hoping to connect pretty soon here, otherwise will have to wait()
 				catch(InterruptedException iex){/*ignore*/}
 			}
-			System.out.println();	//just a line break to help others in displaying neat output
+			System.out.println("Connected!");	//just a line break to help others in displaying neat output
 			ObjectInputStream ois = new ObjectInputStream(actualServer.getInputStream());
 //			System.out.println("DEBUG:Got OIS, now waiting for server to send port");
 			serverPort = (Integer)ois.readObject();
@@ -159,7 +159,7 @@ public class start {
 				prefix = clientName + ": ";
 		}
 		
-		@Override
+		
 		public void run()
 		{
 			try
