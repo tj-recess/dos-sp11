@@ -1,0 +1,7 @@
+Client type: Reader
+Client Name: 3
+Request Sequence	Service Sequence	Object Value
+----------------	----------------	------------
+               2	               1	          -1
+               9	               6	           6
+              14	              11	           5
