@@ -25,18 +25,18 @@ public class ClientHandler implements Runnable
 		 */
 		try 
 		{
-			System.out.println("ClientHandler:started for aClient, waiting for streams..."); 
+//			System.out.println("ClientHandler:started for aClient, waiting for streams..."); 
 			out = new ObjectOutputStream(myClient.getOutputStream());
 			in = new ObjectInputStream(myClient.getInputStream());	
-			System.out.println("ClientHandler: received streams, now ready to get data");
+//			System.out.println("ClientHandler: received streams, now ready to get data");
 
-			System.out.println("DEBUG: ClientHandler is all set, waiting for args from client");
+//			System.out.println("DEBUG: ClientHandler is all set, waiting for args from client");
 			int numAccesses = in.readInt();
 			for(int i = 0; i < numAccesses; i++)
 			{
 				String reqType = (String)in.readObject();
 				int cNum = in.readInt();
-				System.out.println("DEBUG: received vals from client - reqType = " + reqType + ", clientNum = " + cNum + ", numAccesses = " + numAccesses);
+//				System.out.println("DEBUG: received vals from client - reqType = " + reqType + ", clientNum = " + cNum + ", numAccesses = " + numAccesses);
 				if(reqType.equals("read"))
 				{
 					/*
@@ -66,7 +66,7 @@ public class ClientHandler implements Runnable
 					{
 						while(Server.isWriterActive())	//no reading allowed if someone is writing
 						{
-							System.out.println("DEBUG: Reader - wait on write condition until some writer notifies");
+//							System.out.println("DEBUG: Reader - wait on write condition until some writer notifies");
 							//wait on read condition until some writer notifies
 							try {Server.WRITE_CONDITION.wait();}
 							catch (InterruptedException e) {/*Ignore*/}
@@ -119,7 +119,7 @@ public class ClientHandler implements Runnable
 							while(Server.isWriterActive() || Server.getActiveReadersCount() > 0 || Server.getWaitingReadersCount() > 0)
 							{
 								//wait on read condition until some writer notifies
-								System.out.println("DEBUG: Writer : waiting on write condition until someone notifies");
+//								System.out.println("DEBUG: Writer : waiting on write condition until someone notifies");
 								try {Server.WRITE_CONDITION.wait();}
 								catch (InterruptedException e) {/*Ignore*/}
 								//if someone wakes this writer up then check for waiting or active readers again 
@@ -127,8 +127,8 @@ public class ClientHandler implements Runnable
 							}
 							myServiceNum = Server.removeWaitingWriter();
 							Server.setWriterActive();
-							System.out.println("DEBUG: Writer woke up.. Now Active!");
-							System.out.println("DEBUG: Writer: ServiceNum = " + myServiceNum);
+//							System.out.println("DEBUG: Writer woke up.. Now Active!");
+//							System.out.println("DEBUG: Writer: ServiceNum = " + myServiceNum);
 							Server.sharedObject = newVal;
 							//now sleep for opTime
 							try {Thread.sleep(Server.getOpTime(cNum, "writer"));}
@@ -137,7 +137,7 @@ public class ClientHandler implements Runnable
 							Server.writersLog.add(new Formatter(myServiceNum,Server.sharedObject, "W" + cNum));
 							Server.setWriterNotActive();
 							Server.WRITE_CONDITION.notifyAll();	//I am done, wake everyone up
-							System.out.println("DEBUG: Writer: Notified All. Now sending values back");
+//							System.out.println("DEBUG: Writer: Notified All. Now sending values back");
 						}
 						out.writeInt(myRequestNum);
 						out.writeInt(myServiceNum);
@@ -146,12 +146,10 @@ public class ClientHandler implements Runnable
 				else
 					System.out.println("ERROR : Unknown Request Type - " + reqType);
 			}//end of for-running numAccesses times			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (IOException ioex) {
+			System.out.println("Client Handler : IO Exception while communicating with client **Exception = " + ioex.getMessage());
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Client Handler : Unknown data received from client **Exception = " + e.getMessage());
 		}
 	}
 

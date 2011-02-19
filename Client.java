@@ -40,7 +40,7 @@ public class Client
 		}
 		
 		//set client's sleep time
-		System.out.println("DEBUG: RW." + cType + cNum + ".sleepTime = " + sysProp.getProperty("RW." + cType + cNum + ".sleepTime"));
+//		System.out.println("DEBUG: RW." + cType + cNum + ".sleepTime = " + sysProp.getProperty("RW." + cType + cNum + ".sleepTime"));
 		cSleepTime = Integer.parseInt(sysProp.getProperty("RW." + cType + cNum + ".sleepTime"));
 	}
 	
@@ -51,23 +51,23 @@ public class Client
 			System.out.println("Usage : Client <reader | writer>  <clientNumber> <numAccesses> <serverhost> <serverport>");
 			System.exit(-1);
 		}
-		System.out.println("My values receieved from start.java - " + args[0] + ", " + args[1] + ", " + args[2]);
+//		System.out.println("My values receieved from start.java - " + args[0] + ", " + args[1] + ", " + args[2]);
 		Client aClient = new Client(args[0], args[1], args[2]);
 		//now try connecting to server
 
 		try
 		{
-			System.out.println("DEBUG: received arguments from start.java = " + args[3] + ", " + args[4]);
+//			System.out.println("DEBUG: received arguments from start.java = " + args[3] + ", " + args[4]);
 			aClient.connectToServer(args[3], args[4]);
 		}
 		catch (NumberFormatException e) {
-			System.out.println("Client : bad port received from start.java, exception = " + e.toString());
+			System.out.println("Client : bad port received from start.java, exception = " + e.getMessage());
 			System.exit(-2);
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			System.out.println("Client : Not able to resolve host. **Unknown host exception - " + e.getMessage());
 			System.exit(-2);
 		} catch (IOException ioex) {
-			System.out.println("Client : can't start connection with start.java, exception = " + ioex.toString());
+			System.out.println("Client : can't start connection with Server, exception = " + ioex.getMessage());
 			System.exit(-2);
 		}
 		aClient.talkOnSocket();
@@ -81,10 +81,10 @@ public class Client
 	private void talkOnSocket()
 	{
 		try {
-			System.out.println("Connected to Server, now attempting to get streams...");
+//			System.out.println("Connected to Server, now attempting to get streams...");
 			ObjectOutputStream oos = new ObjectOutputStream(myServer.getOutputStream());
 			ObjectInputStream ois = new ObjectInputStream(myServer.getInputStream());
-			System.out.println("DEBUG: Got streams from server's socket, now sending data");
+//			System.out.println("DEBUG: Got streams from server's socket, now sending data");
 			oos.writeInt(numAccesses);	//numAccesses sent once, then send requests for these many times.
 			oos.flush();
 			if(cType.equals("reader"))
@@ -106,22 +106,15 @@ public class Client
 					oos.writeObject("read");
 					oos.writeInt(cNum);
 					oos.flush();
-					System.out.println("DEBUG:Client(Reader) sent data to server " + i + "time, waiting for response");
+//					System.out.println("DEBUG:Client(Reader) sent data to server " + i + "time, waiting for response");
 					int myRequestNum = ois.readInt();
 					int valueReceived = ois.readInt();
 					int myServiceNum = ois.readInt();
 					//print all three things in proper format
 					fout.format(format, myRequestNum, myServiceNum, valueReceived);
-					try
-					{
-						Thread.sleep(cSleepTime);
-					}catch(InterruptedException iex)
-					{
-						System.out.println("Thread interrupted : " + cType + cNum);
-					}					
+					try{Thread.sleep(cSleepTime);}
+					catch(InterruptedException iex){/*Ignore*/}					
 				}
-				
-				
 			}
 			else if(cType.equals("writer"))
 			{
@@ -143,25 +136,20 @@ public class Client
 					oos.writeObject("write");
 					oos.writeInt(cNum);
 					oos.flush();
-					System.out.println("DEBUG:Client(Writer) sent data to server " + i + "time, waiting for response");
+//					System.out.println("DEBUG:Client(Writer) sent data to server " + i + "time, waiting for response");
 					int myRequestNum = ois.readInt();
 					int myServiceNum = ois.readInt();
 					//print received values in proper format
 					fout.format(format, myRequestNum, myServiceNum);
-					try
-					{
-						Thread.sleep(cSleepTime);
-					}catch(InterruptedException iex)
-					{
-						System.out.println("Thread interrupted : " + cType + cNum);
-					}
+					try{Thread.sleep(cSleepTime);}
+					catch(InterruptedException iex){/*Ignore*/}
 				}
 			}
 			else
 				System.out.println("ERROR: Unknown Client Type - " + cType);
 			
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("IOException while talking to server at Client - " + cType + cNum + " - **Exception: " + e.getMessage());
 		}
 		
 	}
