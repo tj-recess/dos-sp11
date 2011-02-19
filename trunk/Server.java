@@ -62,7 +62,7 @@ public class Server implements Runnable
 		catch (IOException ioex)
 		{
 			System.err.println("Can't start server, terminating... : Exception** : " + ioex.getMessage());
-			ioex.printStackTrace();	//DEBUG
+//			ioex.printStackTrace();	//DEBUG
 			System.exit(-1);
 		}
 	}
@@ -91,7 +91,7 @@ public class Server implements Runnable
 			String readerName = sysProp.getProperty(readerKey);	//reader/writer's name starts from 1 to n (not 0 to n-1)
 			String opTime = sysProp.getProperty(readerKey + ".opTime");
 			String sleepTime = sysProp.getProperty(readerKey + ".sleepTime");
-			System.out.println("DEBUG: Config : " + readerName + ", " + opTime + ", " + sleepTime);
+//			System.out.println("DEBUG: Config : " + readerName + ", " + opTime + ", " + sleepTime);
 			readers.add(new RW(readerName, Integer.parseInt(opTime), Integer.parseInt(sleepTime), i));	
 		}
 		//setup writers from config file
@@ -101,8 +101,8 @@ public class Server implements Runnable
 			String writerName = sysProp.getProperty(writerKey);	//reader/writer's name starts from (numReaders + 1) to n (not 0 to n-1)
 			String opTime = sysProp.getProperty(writerKey + ".opTime");
 			String sleepTime = sysProp.getProperty(writerKey + ".sleepTime");
-			System.out.println("DEBUG: Config : " + writerKey + ", " + opTime + ", " + sleepTime);
-			System.out.println("DEBUG: Config : " + writerName + ", " + opTime + ", " + sleepTime);
+//			System.out.println("DEBUG: Config : " + writerKey + ", " + opTime + ", " + sleepTime);
+//			System.out.println("DEBUG: Config : " + writerName + ", " + opTime + ", " + sleepTime);
 			writers.add(new RW(writerName, Integer.parseInt(opTime), Integer.parseInt(sleepTime), i));
 		}		
 	}
@@ -159,7 +159,6 @@ public class Server implements Runnable
 	}
 	public static void main(String[] args)
 	{
-		System.out.println("Inside MAIN of Server.java");
 		if(args.length < 2)
 		{
 			System.err.println("Usage : java Server <host> <port>");
@@ -174,22 +173,25 @@ public class Server implements Runnable
 		try {
 			startSocket = new Socket(args[0], Integer.parseInt(args[1]));
 		} catch (NumberFormatException e) {
-			System.err.println("Actual Server : bad port received from start.java, exception = " + e.toString());
+			System.err.println("Actual Server : bad port " + args[1] + " received from start.java, exception = " + e.getMessage());
+			System.exit(-2);
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			System.out.println("Client : Not able to resolve host. **Unknown host exception - " + e.getMessage());
+			System.exit(-2);
 		} catch (IOException ioex) {
-			System.err.println("Actual Server : can't start connection with start.java, exception = " + ioex.toString());
+			System.err.println("Actual Server : can't start connection with start.java, exception = " + ioex.getMessage());
+			System.exit(-2);
 		}
 		
 		//connection established, now start actual server
-		System.out.println("DEBUG://connection established, now start actual server");
-		System.out.println("DEBUG: Actual Server recieved args[0] = " + args[0] + ", args[1] = " + args[1]);
+//		System.out.println("DEBUG://connection established, now start actual server");
+//		System.out.println("DEBUG: Actual Server recieved args[0] = " + args[0] + ", args[1] = " + args[1]);
 		
 		Server aServer = new Server();
 		new Thread(aServer).start();
 		
 		//server started, now start accepting clients indefinitely
-		System.out.println("DEBUG://server started, now start accepting clients indefinitely");
+//		System.out.println("DEBUG://server started, now start accepting clients indefinitely");
 		
 		//actual server started, now send actual port to start.java		
 		ObjectOutputStream oos;

@@ -35,7 +35,6 @@ public class start {
 		//read configuration from system.properties file
 		Properties sysProp = new Properties();
 		try {
-			System.out.println("Current Directory : " + System.getProperty("user.dir") + "/system.properties");
 			sysProp.load(new FileInputStream("system.properties"));
 		} catch (FileNotFoundException e) {
 			System.err.println("\"system.properties\" - File not found, Exiting!");
@@ -84,7 +83,7 @@ public class start {
 				System.err.println("Can't start remote writer client : " + writerName);
 			}
 		}
-		System.out.println("start.java (DEBUG) : I'm done, you guys play now :-)");
+//		System.out.println("start.java (DEBUG) : I'm done, you guys play now :-)");
 	}
 	
 	private int startServerAndGetPort() 
@@ -100,40 +99,42 @@ public class start {
 					public void run()
 					{ 
 						try {
-							System.out.println("Server waiting for client's request(s)");
 							actualServer = me.accept();
-							System.out.println("Server accepted client's request!");
 						} catch (IOException e) {
-							System.out.println("start.java : not able to connect to actual server...");
+							System.out.println("start.java : not able to connect to actual server. **Exception - " + e.getMessage());
+							System.exit(-1);
 						}
 					}
 			}).start();
 			
 			//first start client (actual server)
 			String path = System.getProperty("user.dir");
-			System.out.println("me.getInetAddress().getHostName(), me.getLocalPort()" + me.getInetAddress().getHostName() + ", " + me.getLocalPort());
+//			System.out.println("me.getInetAddress().getHostName(), me.getLocalPort()" + me.getInetAddress().getHostName() + ", " + me.getLocalPort());
 			Process actualServerProcess = Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
-			new Thread(new ClientOutputStreamReader(actualServerProcess, "ActualServer", "input")).start();
-			new Thread(new ClientOutputStreamReader(actualServerProcess, "ActualServer", "error")).start();
+			new Thread(new ClientOutputStreamReader(actualServerProcess, "", "input")).start();	//leaving 2nd arg blank to 
+			new Thread(new ClientOutputStreamReader(actualServerProcess, "", "error")).start();	//avoid printing any name before output
 					
-			//client (actual server) got started hopefully, now try to get it's port
+			System.out.print("Trying to establish connection with Actual server " + server + "...");
 			while(actualServer == null)
 			{
-				System.out.println("ActualServer still not connected");
+				System.out.print(".");
 				try{Thread.sleep(1000);}	//hoping to connect pretty soon here, otherwise will have to wait()
 				catch(InterruptedException iex){/*ignore*/}
 			}
 			ObjectInputStream ois = new ObjectInputStream(actualServer.getInputStream());
-			System.out.println("DEBUG:Got OIS, now waiting for server to send port");
+//			System.out.println("DEBUG:Got OIS, now waiting for server to send port");
 			serverPort = (Integer)ois.readObject();
-			System.out.println("DEBUG:Got port = "+ serverPort);
+//			System.out.println("DEBUG:Got port = "+ serverPort);
 			
 		}
-		catch(ClassNotFoundException cnfe){cnfe.printStackTrace();System.exit(-1);}	//DEBUG
+		catch(ClassNotFoundException cnfe){
+			System.err.println("Unidentified data received from actual server " + server + "; Exiting!");
+//			cnfe.printStackTrace();
+			System.exit(-1);}	//DEBUG
 		catch(IOException ioex)
 		{
 			System.err.println("start.java :FATAL: can't start communicating with remote host : " + server + " **Exception : " + ioex.toString());
-			ioex.printStackTrace();	//DEBUG
+//			ioex.printStackTrace();	//DEBUG
 			System.exit(-1);
 		}
 		return serverPort;
@@ -142,14 +143,19 @@ public class start {
 	class ClientOutputStreamReader implements Runnable
 	{
 		Process clientProcID;
-		String clientName;
 		String outputType;
+		String clientName;
+		String prefix;
 		BufferedReader clientReader = null;
 		public ClientOutputStreamReader(Process clientProcID, String clientName, String outputType)
 		{
 			this.clientProcID = clientProcID;
 			this.clientName = clientName;
 			this.outputType = outputType;
+			if(clientName.equals(""))
+				prefix = clientName + ": ";
+			else
+				prefix = "";
 		}
 		
 		@Override
@@ -163,23 +169,21 @@ public class start {
 					clientReader = new BufferedReader(new InputStreamReader(clientProcID.getErrorStream()));
 				String output = null;					
 				while((output = clientReader.readLine()) != null)
-				synchronized(ClientHandler.class)
+				synchronized(ClientOutputStreamReader.class)
 				{
-					System.out.println(clientName + ": " + output);
+					System.out.println(prefix + ": " + output);
 				}
 				
-				int exitVal = clientProcID.waitFor();
+				int exitVal = 0;
+				try {exitVal = clientProcID.waitFor();}
+				catch (InterruptedException e) {/*Ignore*/}
 				Runtime.getRuntime().exec("ssh " + clientName + " skill java");
 				if(exitVal != 0)
 					Runtime.getRuntime().exec("skill java");
 			}
 			catch(IOException ex)
 			{
-				System.out.println(ex.toString());
-			}
-			catch (InterruptedException e)
-			{
-				e.printStackTrace();
+				/*Ignore*/
 			}
 		}
 	}
