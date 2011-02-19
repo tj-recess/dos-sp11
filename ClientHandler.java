@@ -25,6 +25,8 @@ public class ClientHandler implements Runnable
 		 */
 		try 
 		{
+			//new requirement - wait until all the clients have started
+			synchronized(ClientHandler.class){/*Just keep waiting on monitor until server releases it*/}
 //			System.out.println("ClientHandler:started for aClient, waiting for streams..."); 
 			out = new ObjectOutputStream(myClient.getOutputStream());
 			in = new ObjectInputStream(myClient.getInputStream());	
@@ -116,8 +118,9 @@ public class ClientHandler implements Runnable
 						int myServiceNum = -1;	//to indicate error in case this gets transmitted
 						synchronized(Server.WRITE_CONDITION)
 						{
-							while(Server.isWriterActive() || Server.getActiveReadersCount() > 0 || Server.getWaitingReadersCount() > 0)
-							{
+							while(Server.isWriterActive() || Server.getActiveReadersCount() > 0 || Server.getWaitingReadersCount() > 0
+									|| (i==0 && Server.getNumReaders() > 0))	//last condition ensures that if there is any expected 
+							{													//reader then writer should first wait
 								//wait on read condition until some writer notifies
 //								System.out.println("DEBUG: Writer : waiting on write condition until someone notifies");
 								try {Server.WRITE_CONDITION.wait();}

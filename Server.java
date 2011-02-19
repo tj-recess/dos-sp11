@@ -28,7 +28,6 @@ public class Server implements Runnable
 	private static AtomicInteger waitingReadersCount;
 	private static AtomicInteger waitingWritersCount;
 	private static boolean writerActive;
-	public static Object READ_CONDITION;
 	public static Object WRITE_CONDITION;
 	public static CopyOnWriteArrayList<Formatter> readersLog;
 	public static CopyOnWriteArrayList<Formatter> writersLog;
@@ -42,7 +41,6 @@ public class Server implements Runnable
 		waitingReadersCount = new AtomicInteger(0);
 		waitingWritersCount = new AtomicInteger(0);
 		writerActive = false;
-		READ_CONDITION = new Object();
 		WRITE_CONDITION = new Object();
 		readers = new ArrayList<RW>();
 		writers = new ArrayList<RW>();
@@ -115,14 +113,18 @@ public class Server implements Runnable
 		//server started, now keep accepting client connections forever
 		try
 		{
-			for(int i = 0; i < numReaders + numWriters; i++)
+			//new requirement - Client requests commence only after all connections with the server have been established
+			synchronized(ClientHandler.class)	//this will ensure that all the clients have to wait until server gives up the monitor
 			{
-//				System.out.println("DEBUG: waiting for connection(s) from client(s)");
-				Socket aClient = ss.accept();
-				Thread t = new Thread(new ClientHandler(aClient));
-				t.start();
-				clientHandlers.add(t);
-//				System.out.println("DEBUG: got a new client, starting in another clienthandler thread");
+				for(int i = 0; i < numReaders + numWriters; i++)
+				{
+	//				System.out.println("DEBUG: waiting for connection(s) from client(s)");
+					Socket aClient = ss.accept();
+					Thread t = new Thread(new ClientHandler(aClient));
+					t.start();
+					clientHandlers.add(t);
+	//				System.out.println("DEBUG: got a new client, starting in another clienthandler thread");
+				}
 			}
 			//now done accepting all clients, make them join before printing output
 			for(int i = 0; i < clientHandlers.size(); i++)
@@ -266,5 +268,12 @@ public class Server implements Runnable
 			return writers.get(cNum - numReaders - 1).getOpTime();
 		else	//should never happen
 			return 0;
+	}
+	
+	public static int getNumReaders() {
+		return numReaders;
+	}
+	public static int getNumWriters() {
+		return numWriters;
 	}
 } 
