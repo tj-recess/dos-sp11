@@ -106,7 +106,7 @@ public class Server implements Runnable
 			writers.add(new RW(writerName, Integer.parseInt(opTime), Integer.parseInt(sleepTime), i));
 		}		
 	}
-	@Override
+	
 	public void run()
 	{
 		if(ss == null)
