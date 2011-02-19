@@ -134,7 +134,7 @@ public class Server implements Runnable
 			System.out.println("Read Requests:");
 			String readerFormat = "%16s\t%12s\t%7s\t%14s%n";
 			System.out.format(readerFormat, "Service Sequence", "Object Value", "Read by", "Num of Readers");
-			System.out.format(readerFormat,"------------------","---------------","---------", "--------------");
+			System.out.format(readerFormat, "----------------", "------------", "-------", "--------------");
 			for(int i = 0; i < readersLog.size(); i++)
 			{
 				Formatter f = readersLog.get(i);
@@ -144,7 +144,7 @@ public class Server implements Runnable
 			System.out.println("Write Requests:");
 			String writerFormat = "%16s\t%12s\t%10s%n";
 			System.out.format(writerFormat, "Service Sequence", "Object Value", "Written by");
-			System.out.format(writerFormat, "------------------", "---------------", "-----------");
+			System.out.format(writerFormat, "----------------", "------------", "----------");
 			for(int i = 0; i < writersLog.size(); i++)
 			{
 				Formatter f = writersLog.get(i);
