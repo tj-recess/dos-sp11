@@ -33,8 +33,8 @@ public class Server implements Runnable
 	static 
 	{
 		sharedObject = -1;
-		requestNum = new AtomicInteger(1);
-		serviceNum = new AtomicInteger(1);
+		requestNum = new AtomicInteger(0);
+		serviceNum = new AtomicInteger(0);
 		activeReadersCount = new AtomicInteger(0);
 		waitingReadersCount = new AtomicInteger(0);
 		waitingWritersCount = new AtomicInteger(0);
@@ -113,9 +113,9 @@ public class Server implements Runnable
 			while(true)
 			{
 				System.out.println("DEBUG: waiting for connection(s) from client(s)");
-				Socket client = ss.accept();
+				Socket aClient = ss.accept();
+				new Thread(new ClientHandler(aClient)).start();
 				System.out.println("DEBUG: got a new client, starting in another clienthandler thread");
-				new Thread(new ClientHandler(client)).start();
 			}
 		}
 		catch (IOException ioex)
@@ -153,14 +153,12 @@ public class Server implements Runnable
 		System.out.println("DEBUG: Actual Server recieved args[0] = " + args[0] + ", args[1] = " + args[1]);
 		
 		Server aServer = new Server();
-
-		//server started, now start accepting clients indefinitely
-		System.out.println("DEBUG://server started, now start accepting clients indefinitely");
-
 		new Thread(aServer).start();
 		
-		//actual server started, now send actual port to start.java
+		//server started, now start accepting clients indefinitely
+		System.out.println("DEBUG://server started, now start accepting clients indefinitely");
 		
+		//actual server started, now send actual port to start.java		
 		ObjectOutputStream oos;
 		try {
 			oos = new ObjectOutputStream(startSocket.getOutputStream());

@@ -31,9 +31,9 @@ public class Client
 		try {
 			sysProp.load(new FileInputStream("system.properties"));
 		} catch (FileNotFoundException e) {
-			System.err.println("\"system.properties\" - File not found!");
+			System.out.println("\"system.properties\" - File not found!");
 		} catch (IOException ioex) {
-			System.err.println("\"system.properties\" - IO Exception! " + ioex.getMessage());
+			System.out.println("\"system.properties\" - IO Exception! " + ioex.getMessage());
 		}
 		
 		//set client's sleep time
@@ -45,7 +45,7 @@ public class Client
 	{
 		if(args.length < 5)
 		{
-			System.err.println("Usage : Client <reader | writer>  <clientNumber> <numAccesses> <serverhost> <serverport>");
+			System.out.println("Usage : Client <reader | writer>  <clientNumber> <numAccesses> <serverhost> <serverport>");
 			System.exit(-1);
 		}
 		System.out.println("My values receieved from start.java - " + args[0] + ", " + args[1] + ", " + args[2]);
@@ -56,16 +56,15 @@ public class Client
 		{
 			System.out.println("DEBUG: received arguments from start.java = " + args[3] + ", " + args[4]);
 			aClient.connectToServer(args[3], args[4]);
-			System.out.println("Connected to Server, now attempting to talk");
 		}
 		catch (NumberFormatException e) {
-			System.err.println("Client : bad port received from start.java, exception = " + e.toString());
+			System.out.println("Client : bad port received from start.java, exception = " + e.toString());
 			System.exit(-2);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 			System.exit(-2);
 		} catch (IOException ioex) {
-			System.err.println("Client : can't start connection with start.java, exception = " + ioex.toString());
+			System.out.println("Client : can't start connection with start.java, exception = " + ioex.toString());
 			System.exit(-2);
 		}
 		aClient.talkOnSocket();
@@ -79,8 +78,9 @@ public class Client
 	private void talkOnSocket()
 	{
 		try {
-			ObjectInputStream ois = new ObjectInputStream(myServer.getInputStream());
+			System.out.println("Connected to Server, now attempting to get streams...");
 			ObjectOutputStream oos = new ObjectOutputStream(myServer.getOutputStream());
+			ObjectInputStream ois = new ObjectInputStream(myServer.getInputStream());
 			System.out.println("DEBUG: Got streams from server's socket, now sending data");
 			if(cType.equals("reader"))
 			{
@@ -97,7 +97,8 @@ public class Client
 					int myRequestNum = ois.readInt();
 					int valueReceived = ois.readInt();
 					int myServiceNum = ois.readInt();
-
+					System.out.println("Client " + cType + cNum + ": RequestNum = " + myRequestNum 
+							+ ", value Received = " + valueReceived + ", ServiceNum = " + myServiceNum);
 					try
 					{
 						Thread.sleep(cSleepTime);
@@ -106,8 +107,6 @@ public class Client
 						System.out.println("Thread interrupted : " + cType + cNum);
 					}
 					//TODO: print all three things in proper format
-					System.out.println("Client " + cType + cNum + ": RequestNum = " + myRequestNum 
-							+ ", value Received = " + valueReceived + ", ServiceNum = " + myServiceNum);
 				}
 				
 				
@@ -127,6 +126,8 @@ public class Client
 					System.out.println("DEBUG: sent data to server, waiting for response");
 					int myRequestNum = ois.readInt();
 					int myServiceNum = ois.readInt();
+					System.out.println("Client " + cType + cNum + ": RequestNum = " + myRequestNum 
+							+ ", ServiceNum = " + myServiceNum);
 					try
 					{
 						Thread.sleep(cSleepTime);
@@ -135,8 +136,6 @@ public class Client
 						System.out.println("Thread interrupted : " + cType + cNum);
 					}
 					//TODO: print all three things in proper format
-					System.out.println("Client " + cType + cNum + ": RequestNum = " + myRequestNum 
-							+ ", ServiceNum = " + myServiceNum);
 				}
 
 			}
