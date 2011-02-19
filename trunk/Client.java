@@ -1,8 +1,10 @@
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Properties;
@@ -15,6 +17,7 @@ public class Client
 	int numAccesses;
 	Socket myServer = null;
 	int cSleepTime;
+	private PrintWriter fout = null;
 	
 	public Client(String clientType, String clientNumber, String numAccesses)
 	{
@@ -90,6 +93,14 @@ public class Client
 				 * send request type (read) to server, receive request token from server,
 				 * wait for cSleepTime and then request again upto numAccesses time
 				 */
+				try{fout = new PrintWriter(new FileWriter("R" + cNum +".log"), true);}
+				catch(IOException ioex){System.out.println("Can't write to log file at Client " + "R" + cNum + ".log" + "**Exception** : " + ioex.toString());}
+				//writing headers for output
+				fout.println("Client type: Reader");
+				fout.println("Client Name: " + cNum);
+				String format = "%16s\t%16s\t%12s%n";
+				fout.format(format, "Request Sequence", "Service Sequence", "Object Value");
+				fout.format(format, "----------------", "----------------", "------------");
 				for (int i = 0; i < numAccesses; i++)
 				{
 					oos.writeObject("read");
@@ -99,16 +110,15 @@ public class Client
 					int myRequestNum = ois.readInt();
 					int valueReceived = ois.readInt();
 					int myServiceNum = ois.readInt();
-					System.out.println("Client " + cType + cNum + ": RequestNum = " + myRequestNum 
-							+ ", value Received = " + valueReceived + ", ServiceNum = " + myServiceNum);
+					//print all three things in proper format
+					fout.format(format, myRequestNum, myServiceNum, valueReceived);
 					try
 					{
 						Thread.sleep(cSleepTime);
 					}catch(InterruptedException iex)
 					{
 						System.out.println("Thread interrupted : " + cType + cNum);
-					}
-					//TODO: print all three things in proper format
+					}					
 				}
 				
 				
@@ -120,6 +130,14 @@ public class Client
 				 * wait for cSleepTime and then receive service token from server and then
 				 * request again upto numAccesses time
 				 */
+				try{fout = new PrintWriter(new FileWriter("W" + cNum +".log"), true);}
+				catch(IOException ioex){System.out.println("Can't write to log file at Client " + "W" + cNum + ".log" + "**Exception** : " + ioex.toString());}
+				//print headers for output
+				fout.println("Client type: Writer");
+				fout.println("Client Name: " + cNum);
+				String format = "%16s\t%16s%n";
+				fout.format(format, "Request Sequence", "Service Sequence");
+				fout.format(format, "----------------", "----------------");
 				for(int i = 0; i < numAccesses; i++)
 				{
 					oos.writeObject("write");
@@ -128,8 +146,8 @@ public class Client
 					System.out.println("DEBUG:Client(Writer) sent data to server " + i + "time, waiting for response");
 					int myRequestNum = ois.readInt();
 					int myServiceNum = ois.readInt();
-					System.out.println("Client " + cType + cNum + ": RequestNum = " + myRequestNum 
-							+ ", ServiceNum = " + myServiceNum);
+					//print received values in proper format
+					fout.format(format, myRequestNum, myServiceNum);
 					try
 					{
 						Thread.sleep(cSleepTime);
@@ -137,15 +155,12 @@ public class Client
 					{
 						System.out.println("Thread interrupted : " + cType + cNum);
 					}
-					//TODO: print all three things in proper format
 				}
-
 			}
 			else
 				System.out.println("ERROR: Unknown Client Type - " + cType);
 			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
