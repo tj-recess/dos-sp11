@@ -121,6 +121,7 @@ public class start {
 				try{Thread.sleep(1000);}	//hoping to connect pretty soon here, otherwise will have to wait()
 				catch(InterruptedException iex){/*ignore*/}
 			}
+			System.out.println();	//just a line break to help others in displaying neat output
 			ObjectInputStream ois = new ObjectInputStream(actualServer.getInputStream());
 //			System.out.println("DEBUG:Got OIS, now waiting for server to send port");
 			serverPort = (Integer)ois.readObject();
@@ -153,9 +154,9 @@ public class start {
 			this.clientName = clientName;
 			this.outputType = outputType;
 			if(clientName.equals(""))
-				prefix = clientName + ": ";
-			else
 				prefix = "";
+			else
+				prefix = clientName + ": ";
 		}
 		
 		@Override
@@ -171,7 +172,7 @@ public class start {
 				while((output = clientReader.readLine()) != null)
 				synchronized(ClientOutputStreamReader.class)
 				{
-					System.out.println(prefix + ": " + output);
+					System.out.println(prefix + output);
 				}
 				
 				int exitVal = 0;
