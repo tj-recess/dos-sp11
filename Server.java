@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -29,6 +30,8 @@ public class Server implements Runnable
 	private static boolean writerActive;
 	public static Object READ_CONDITION;
 	public static Object WRITE_CONDITION;
+	public static CopyOnWriteArrayList<Formatter> readersLog;
+	public static CopyOnWriteArrayList<Formatter> writersLog;
 	
 	static 
 	{
@@ -43,6 +46,8 @@ public class Server implements Runnable
 		WRITE_CONDITION = new Object();
 		readers = new ArrayList<RW>();
 		writers = new ArrayList<RW>();
+		readersLog = new CopyOnWriteArrayList<Formatter>();
+		writersLog = new CopyOnWriteArrayList<Formatter>();
 	}
 	
 	public Server()
@@ -106,16 +111,44 @@ public class Server implements Runnable
 	{
 		if(ss == null)
 			return;
-		
+		ArrayList<Thread> clientHandlers = new ArrayList<Thread>();
 		//server started, now keep accepting client connections forever
 		try
 		{
-			while(true)
+			for(int i = 0; i < numReaders + numWriters; i++)
 			{
-				System.out.println("DEBUG: waiting for connection(s) from client(s)");
+//				System.out.println("DEBUG: waiting for connection(s) from client(s)");
 				Socket aClient = ss.accept();
-				new Thread(new ClientHandler(aClient)).start();
-				System.out.println("DEBUG: got a new client, starting in another clienthandler thread");
+				Thread t = new Thread(new ClientHandler(aClient));
+				t.start();
+				clientHandlers.add(t);
+//				System.out.println("DEBUG: got a new client, starting in another clienthandler thread");
+			}
+			//now done accepting all clients, make them join before printing output
+			for(int i = 0; i < clientHandlers.size(); i++)
+			{
+				try {clientHandlers.get(i).join();}
+				catch (InterruptedException e) {/*Ignore*/}
+			}
+			//now all threads are done, print both reading and writing logs
+			System.out.println("Read Requests:");
+			String readerFormat = "%16s\t%12s\t%7s\t%14s%n";
+			System.out.format(readerFormat, "Service Sequence", "Object Value", "Read by", "Num of Readers");
+			System.out.format(readerFormat,"------------------","---------------","---------", "--------------");
+			for(int i = 0; i < readersLog.size(); i++)
+			{
+				Formatter f = readersLog.get(i);
+				System.out.format(readerFormat, f.getServiceNum(), f.getObjectVal(), f.getReadBy(), f.getNumActiveReaders());
+			}
+			
+			System.out.println("Write Requests:");
+			String writerFormat = "%16s\t%12s\t%10s%n";
+			System.out.format(writerFormat, "Service Sequence", "Object Value", "Written by");
+			System.out.format(writerFormat, "------------------", "---------------", "-----------");
+			for(int i = 0; i < writersLog.size(); i++)
+			{
+				Formatter f = writersLog.get(i);
+				System.out.format(writerFormat, f.getServiceNum(), f.getObjectVal(), f.getWrittenBy());
 			}
 		}
 		catch (IOException ioex)

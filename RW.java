@@ -28,3 +28,46 @@ public class RW
 	}
 
 }
+
+class Formatter
+{
+	int serviceNum;
+	int objectVal;
+	String writtenBy;
+	String readBy;
+	int numActiveReaders;
+	public Formatter(int serviceNum, int objectVal, String writtenBy)
+	{
+		this.serviceNum = serviceNum;
+		this.objectVal = objectVal;
+		this.writtenBy = writtenBy;
+	}
+	
+	public Formatter(int serviceNum, int objectVal, String readBy, int numActiveReaders)
+	{
+		this.serviceNum = serviceNum;
+		this.objectVal = objectVal;
+		this.readBy = readBy;
+		this.numActiveReaders = numActiveReaders;
+	}
+	
+	public int getServiceNum() {
+		return serviceNum;
+	}
+
+	public int getObjectVal() {
+		return objectVal;
+	}
+
+	public String getWrittenBy() {
+		return writtenBy;
+	}
+
+	public String getReadBy() {
+		return readBy;
+	}
+
+	public int getNumActiveReaders() {
+		return numActiveReaders;
+	}
+}
