@@ -67,7 +67,7 @@ public class start {
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + readerName + " cd " + path + " ; java Client reader " + i + " " + numAccesses + " " + server + " " + serverPort);
 				new Thread(new ClientOutputStreamReader(remote, readerName, "input")).start();
-				//new Thread(new ClientOutputStreamReader(remote, readerName, "error")).start();
+				new Thread(new ClientOutputStreamReader(remote, readerName, "error")).start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote reader client : " + readerName );
 			}
@@ -79,7 +79,7 @@ public class start {
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + writerName + " cd " + path + " ; java Client writer " + i + " " + numAccesses + " " + server + " " + serverPort);
 				new Thread(new ClientOutputStreamReader(remote, writerName, "input")).start();
-				//new Thread(new ClientOutputStreamReader(remote, writerName, "error")).start();
+				new Thread(new ClientOutputStreamReader(remote, writerName, "error")).start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote writer client : " + writerName);
 			}
@@ -114,7 +114,7 @@ public class start {
 			System.out.println("me.getInetAddress().getHostName(), me.getLocalPort()" + me.getInetAddress().getHostName() + ", " + me.getLocalPort());
 			Process actualServerProcess = Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
 			new Thread(new ClientOutputStreamReader(actualServerProcess, "ActualServer", "input")).start();
-			//new Thread(new ClientOutputStreamReader(actualServerProcess, "ActualServer", "error")).start();
+			new Thread(new ClientOutputStreamReader(actualServerProcess, "ActualServer", "error")).start();
 					
 			//client (actual server) got started hopefully, now try to get it's port
 			while(actualServer == null)
