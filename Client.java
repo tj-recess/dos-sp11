@@ -82,6 +82,8 @@ public class Client
 			ObjectOutputStream oos = new ObjectOutputStream(myServer.getOutputStream());
 			ObjectInputStream ois = new ObjectInputStream(myServer.getInputStream());
 			System.out.println("DEBUG: Got streams from server's socket, now sending data");
+			oos.writeInt(numAccesses);	//numAccesses sent once, then send requests for these many times.
+			oos.flush();
 			if(cType.equals("reader"))
 			{
 				/*
@@ -93,7 +95,7 @@ public class Client
 					oos.writeObject("read");
 					oos.writeInt(cNum);
 					oos.flush();
-					System.out.println("DEBUG: sent data to server, waiting for response");
+					System.out.println("DEBUG:Client(Reader) sent data to server " + i + "time, waiting for response");
 					int myRequestNum = ois.readInt();
 					int valueReceived = ois.readInt();
 					int myServiceNum = ois.readInt();
@@ -123,7 +125,7 @@ public class Client
 					oos.writeObject("write");
 					oos.writeInt(cNum);
 					oos.flush();
-					System.out.println("DEBUG: sent data to server, waiting for response");
+					System.out.println("DEBUG:Client(Writer) sent data to server " + i + "time, waiting for response");
 					int myRequestNum = ois.readInt();
 					int myServiceNum = ois.readInt();
 					System.out.println("Client " + cType + cNum + ": RequestNum = " + myRequestNum 

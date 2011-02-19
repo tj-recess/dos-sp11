@@ -42,14 +42,18 @@ public class ClientHandler implements Runnable
 
 			fout.println("DEBUG: ClientHandler is all set, waiting for args from client");
 			System.out.println("DEBUG: ClientHandler is all set, waiting for args from client");
-			String reqType = (String)in.readObject();
-			int cNum = in.readInt();
-			fout.println("DEBUG: received vals from client - reqType = " + reqType + ", clientNum = " + cNum);
-			System.out.println("DEBUG: received vals from client - reqType = " + reqType + ", clientNum = " + cNum);
+			int numAccesses = in.readInt();
+			for(int i = 0; i < numAccesses; i++)
+			{
+				String reqType = (String)in.readObject();
+				int cNum = in.readInt();
+				fout.println("DEBUG: received vals from client - reqType = " + reqType + ", clientNum = " + cNum + ", numAccesses = " + numAccesses);
+				System.out.println("DEBUG: received vals from client - reqType = " + reqType + ", clientNum = " + cNum + ", numAccesses = " + numAccesses);
 			if(reqType.equals("read"))
 			{
 				/*
 				 * TODO:
+				 * 0. in loop until numAccesses times
 				 * 1. increment waiting reader's count
 				 * 2. check if there is any writer already in Critical Section (busy flag), 
 				 * 3.	if yes, wait on readCondition until someone wakes you up
@@ -66,57 +70,60 @@ public class ClientHandler implements Runnable
 				 * 9. now send the values back to client
 				 * 
 				 */
-				
-				int myRequestNum = Server.addWaitingReader();
-				System.out.println("Reader : requestNum = " + myRequestNum);
-				synchronized(Server.WRITE_CONDITION)
-				{
-					if(Server.isWriterActive())
+
+//				for(int i = 0; i < numAccesses; i++)
+//				{
+					int myRequestNum = Server.addWaitingReader();
+					int myServiceNum = -1;	//to indicate error
+					System.out.println("Reader : requestNum = " + myRequestNum);
+					synchronized(Server.WRITE_CONDITION)
 					{
-						System.out.println("DEBUG: Writer Active - //wait on read condition until some writer notifies");
-						//wait on read condition until some writer notifies
-						try {
-							//Server.READ_CONDITION.wait();
-							Server.WRITE_CONDITION.wait();
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+						while(Server.isWriterActive())	//no reading allowed if someone is writing
+						{
+							System.out.println("DEBUG: Reader - wait on write condition until some writer notifies");
+							//wait on read condition until some writer notifies
+							try {
+								Server.WRITE_CONDITION.wait();
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 						}
+						//have to perform these 2 steps atomically
+						Server.removeWaitingReader();						
+						myServiceNum = Server.addActiveReader();
 					}
-				}
-				Server.removeWaitingReader();
-				System.out.println("DEBUG: Reader now reading the data");
-				
-				int myServiceNum = Server.addActiveReader();
-				int sharedObjectValue = Server.sharedObject;
-				System.out.println("DEBUG: Reader: myServiceNum = " + myServiceNum + ", sharedObjectValue = " + sharedObjectValue);
-				//now sleep for opTime
-				try {
-					System.out.println("DEBUG: Reader: now sleeping for opTime time.");
-					Thread.sleep(Server.getOpTime(cNum, "reader"));
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				Server.removeActiveReader();
-				synchronized(Server.WRITE_CONDITION)
-				{
-					System.out.println("DEBUG: Reader: trying to wake up a writer");
-					if(Server.getActiveReadersCount() == 0 && Server.getWaitingReadersCount() == 0)
-						Server.WRITE_CONDITION.notifyAll();	//wake a random writer
-					System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
-				}
-				out.writeInt(myRequestNum);
-				out.writeInt(sharedObjectValue);
-				out.writeInt(myServiceNum);
-				out.flush();
-				System.out.println("Sent all data, reader's CH is done!!");
+					int sharedObjectValue = Server.sharedObject;
+					System.out.println("DEBUG: Reader: myServiceNum = " + myServiceNum + ", sharedObjectValue = " + sharedObjectValue);
+					//now sleep for opTime
+					try {
+						System.out.println("DEBUG: Reader: now sleeping for opTime time.");
+						Thread.sleep(Server.getOpTime(cNum, "reader"));
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					Server.removeActiveReader();
+					synchronized(Server.WRITE_CONDITION)
+					{
+						System.out.println("DEBUG: Reader: trying to wake up everyone waiting");
+//						if(Server.getActiveReadersCount() == 0 && Server.getWaitingReadersCount() == 0)
+						Server.WRITE_CONDITION.notifyAll();	//wake up everyone and then check for reader/writer conflict again
+						System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
+					}
+					out.writeInt(myRequestNum);
+					out.writeInt(sharedObjectValue);
+					out.writeInt(myServiceNum);
+					out.flush();
+					System.out.println("Sent all data, reader's CH is done!!");
+//				}
 			}
 			else if(reqType.equals("write"))
 			{
 				int newVal = cNum;
 				/*
 				 * TODO:
+				 * 0. in loop numAccesses times, repeat 1 to 8
 				 * 1. waitingWriterCout++;
 				 * 2. if activeReaderCount > 0 || waitingReaderCount is > 0
 				 * 		--keep waiting on writeCondition object until someone wakes u up
@@ -127,49 +134,52 @@ public class ClientHandler implements Runnable
 				 * 7. sleep for opTime
 				 * 8. now return the value and sequence number 
 				 */
-				int myRequestNum = Server.addWaitingWriter();
-				System.out.println("DEBUG: Writer : requestNum = " + myRequestNum);
-				int myServiceNum = -1;	//to indicate error in case this gets transmitted
-				synchronized(Server.WRITE_CONDITION)
-				{
-					if(Server.isWriterActive()|| Server.getActiveReadersCount() > 0 || Server.getWaitingReadersCount() > 0)
+//				for(int i = 0; i < numAccesses; i++)
+//				{
+					int myRequestNum = Server.addWaitingWriter();
+					System.out.println("DEBUG: Writer : requestNum = " + myRequestNum);
+					int myServiceNum = -1;	//to indicate error in case this gets transmitted
+					synchronized(Server.WRITE_CONDITION)
 					{
-						//wait on read condition until some writer notifies
-						System.out.println("DEBUG: Writer : waiting on write condition until some writer notifies");
+						while(Server.isWriterActive() || Server.getActiveReadersCount() > 0 || Server.getWaitingReadersCount() > 0)
+						{
+							//wait on read condition until some writer notifies
+							System.out.println("DEBUG: Writer : waiting on write condition until someone notifies");
+							try {
+								Server.WRITE_CONDITION.wait();
+								//if someone wakes this writer up then check for waiting or active readers again 
+								//before attempting to change the value
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+						myServiceNum = Server.removeWaitingWriter();
+						Server.setWriterActive();
+						System.out.println("DEBUG: Writer woke up.. Now Active!");
+						System.out.println("DEBUG: Writer: ServiceNum = " + myServiceNum);
+						Server.sharedObject = newVal;
+						//now sleep for opTime
 						try {
-							Server.WRITE_CONDITION.wait();
+							System.out.println("DEBUG: Writer - now sleeping for opTime");
+							Thread.sleep(Server.getOpTime(cNum, "writer"));
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-						Server.setWriterActive();
-						System.out.println("DEBUG: Writer woke up.. Now Active!");
+						Server.setWriterNotActive();
+						Server.WRITE_CONDITION.notifyAll();	//I am done, wake everyone up
+						System.out.println("DEBUG: Writer: Notified All. Now sending values back");
 					}
-					myServiceNum = Server.removeWaitingWriter();
-					System.out.println("DEBUG: Writer: ServiceNum = " + myServiceNum);
-					Server.sharedObject = newVal;
-					//now sleep for opTime
-					try {
-						System.out.println("DEBUG: Writer - now sleeping for opTime");
-						Thread.sleep(Server.getOpTime(cNum, "writer"));
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					if(Server.getActiveReadersCount() == 0 && Server.getWaitingReadersCount() == 0)
-						Server.WRITE_CONDITION.notifyAll();	//wake a random writer : LOGIC NEEDED
-					else
-						Server.WRITE_CONDITION.notifyAll();
-					System.out.println("DEBUG: Writer: Notified, either reader or writer. Now sending values back");
-				}
-				out.writeInt(myRequestNum);
-				out.writeInt(myServiceNum);
-				out.flush();
-				System.out.println("DEBUG: Writer everthing sent");
+					out.writeInt(myRequestNum);
+					out.writeInt(myServiceNum);
+					out.flush();
+					System.out.println("DEBUG: Writer everthing sent");
+//				}
 			}
 			else
 				System.out.println("ERROR : Unknown Request Type - " + reqType);
-			
+			}//end of for-running numAccesses times			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

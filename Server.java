@@ -220,6 +220,9 @@ public class Server implements Runnable
 	public static void setWriterActive() {
 		writerActive = true;
 	}
+	public static void setWriterNotActive() {
+		writerActive = false;
+	}
 	
 	public static int getOpTime(int cNum, String type) {
 		if(type.equals("reader"))
