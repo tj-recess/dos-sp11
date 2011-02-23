@@ -81,7 +81,7 @@ class Formatter
 }
 
 
-class ReplyPacket
+class ReplyPacket implements Serializable
 {
 	private int requestNum;
 	private int serviceNum;

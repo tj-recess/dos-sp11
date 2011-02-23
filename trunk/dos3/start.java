@@ -48,6 +48,7 @@ public class start {
 		numAccesses = conf.getNumAccesses();
 		server = conf.getServer();
 		rmiPort = conf.getRmiPort();
+		System.out.println("DEBUG: start.java: rmiPort = " + rmiPort);
 	}
 	
 	private void startWriters()
@@ -57,8 +58,9 @@ public class start {
 		{
 			RW aWriter = writers.get(i);
 			String writerName = aWriter.getName();	//reader/writer's name starts from (numReaders + 1) to n (not 0 to n-1)
+			int cNum = i + 1 + numReaders;
 			try {
-				Process remote = Runtime.getRuntime().exec("ssh " + writerName + " cd " + path + " ; java Client writer " + i + " " + numAccesses + " " + aWriter.getSleepTime() + " " + server + " " + rmiPort);
+				Process remote = Runtime.getRuntime().exec("ssh " + writerName + " cd " + path + " ; java Client writer " + cNum + " " + numAccesses + " " + aWriter.getSleepTime() + " " + server + " " + rmiPort);
 				new Thread(new ClientOutputStreamReader(remote, writerName, "input")).start();
 				new Thread(new ClientOutputStreamReader(remote, writerName, "error")).start();
 			} catch (IOException e) {
@@ -75,8 +77,9 @@ public class start {
 		{
 			RW aReader = readers.get(i);
 			String readerName = aReader.getName();	//reader/writer's name starts from 1 to n (not 0 to n-1)
+			int cNum = i + 1;
 			try {
-				Process remote = Runtime.getRuntime().exec("ssh " + readerName + " cd " + path + " ; java Client reader " + i + " " + numAccesses + " " + aReader.getSleepTime() + " " + server + " " + rmiPort);
+				Process remote = Runtime.getRuntime().exec("ssh " + readerName + " cd " + path + " ; java Client reader " + cNum + " " + numAccesses + " " + aReader.getSleepTime() + " " + server + " " + rmiPort);
 				new Thread(new ClientOutputStreamReader(remote, readerName, "input")).start();
 				new Thread(new ClientOutputStreamReader(remote, readerName, "error")).start();
 			} catch (IOException e) {
