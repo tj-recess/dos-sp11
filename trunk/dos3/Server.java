@@ -102,9 +102,9 @@ public class Server implements Crew{
 	}
 
 	private void register() {
-		Server stub = null;
+		Crew stub = null;
 		try {
-			stub = (Server) UnicastRemoteObject.exportObject(this, 0);
+			stub = (Crew) UnicastRemoteObject.exportObject(this, 0);
 			LocateRegistry.getRegistry(rmiPort).bind("arpit", stub);
 		} catch (RemoteException e) {
 			// TODO Auto-generated catch block
