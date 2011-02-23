@@ -8,6 +8,7 @@ import java.io.Serializable;
 
 public class RW implements Serializable
 {
+	private static final long serialVersionUID = 6591733251439326731L;
 	private String name;
 	private int opTime;
 	private int sleepTime;
