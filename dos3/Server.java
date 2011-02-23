@@ -72,6 +72,7 @@ public class Server implements Crew{
 		//get and return required objects from start.java
 		aServer.giveAndTake(startSocket);
 		
+		
 		//server started, now register this with RMI registry
 //		System.out.println("DEBUG://server started, now register this with RMI registry");
 		aServer.register();
@@ -92,6 +93,12 @@ public class Server implements Crew{
 			numReaders = readers.size();
 			numWriters = writers.size();
 			
+			System.out.println("RMI Port = " + rmiPort);
+			LocateRegistry.createRegistry(rmiPort);
+		}
+		catch (RemoteException e) {
+			System.err.println("DEBUG: Server: Can't create Registry at " + rmiPort + " port.");
+			e.printStackTrace();
 		}
 		catch (IOException ioex)
 		{
@@ -135,13 +142,6 @@ public class Server implements Crew{
 		writers = new ArrayList<RW>();
 		readersLog = new CopyOnWriteArrayList<Formatter>();
 		writersLog = new CopyOnWriteArrayList<Formatter>();
-		try{
-			System.out.println("RMI Port = " + rmiPort);
-		LocateRegistry.createRegistry(rmiPort);
-		} catch (RemoteException e) {
-			System.err.println("DEBUG: Server: Can't create Registry at " + rmiPort + " port.");
-			e.printStackTrace();
-		}
 	}
 
 	@Override
@@ -169,12 +169,12 @@ public class Server implements Crew{
 
 		int myRequestNum = addWaitingReader();
 		int myServiceNum = -1;	//to indicate error
-//		System.out.println("Reader : requestNum = " + myRequestNum);
+		System.out.println("Reader : requestNum = " + myRequestNum);
 		synchronized(WRITE_CONDITION)
 		{
 			while(isWriterActive())	//no reading allowed if someone is writing
 			{
-//				System.out.println("DEBUG: Reader - wait on write condition until some writer notifies");
+				System.out.println("DEBUG: Reader - wait on write condition until some writer notifies");
 				//wait on read condition until some writer notifies
 				try {WRITE_CONDITION.wait();}
 				catch (InterruptedException e) {/*Ignore*/}
@@ -184,7 +184,7 @@ public class Server implements Crew{
 			myServiceNum = addActiveReader();
 		}
 		int sharedObjectValue = sharedObject;
-//		System.out.println("DEBUG: Reader: myServiceNum = " + myServiceNum + ", sharedObjectValue = " + sharedObjectValue);
+		System.out.println("DEBUG: Reader: myServiceNum = " + myServiceNum + ", sharedObjectValue = " + sharedObjectValue);
 		//now sleep for opTime
 		try {Thread.sleep(getOpTime(cNum, "reader"));}
 		catch (InterruptedException e) {/*Ignore*/}
@@ -193,15 +193,16 @@ public class Server implements Crew{
 		removeActiveReader();
 		synchronized(WRITE_CONDITION)
 		{
-//			System.out.println("DEBUG: Reader: trying to wake up everyone waiting");
+			System.out.println("DEBUG: Reader: trying to wake up everyone waiting");
 			WRITE_CONDITION.notifyAll();	//wake up everyone and then check for reader/writer conflict again
-//			System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
+			System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
 		}
 		
 		if(requestNum.get() == numAccesses)
 			printOutput();
 		
 		return new ReplyPacket(myRequestNum, sharedObjectValue, myServiceNum);
+//		System.out.println("DEBUG: ReadData: sent reply packet");
 	}
 
 	private void printOutput()
@@ -245,7 +246,7 @@ public class Server implements Crew{
 		 */
 
 		int myRequestNum = addWaitingWriter();
-//			System.out.println("DEBUG: Writer : requestNum = " + myRequestNum);
+			System.out.println("DEBUG: Writer : requestNum = " + myRequestNum);
 		int myServiceNum = -1;	//to indicate error in case this gets transmitted
 		synchronized(WRITE_CONDITION)
 		{
@@ -254,7 +255,7 @@ public class Server implements Crew{
 			{													//reader then writer should first wait
 				//wait on read condition until some writer notifies
 //					System.out.println("DEBUG: Writer : waiting on write condition until someone notifies. i = " + i + ", numReaders = " + getNumReaders() + ", activeReaders = " + getActiveReadersCount() + ", waitingReaders = " + getWaitingReadersCount());
-//					System.out.println("firstCaterReaderCond = " + firstCaterReaderCond);
+					System.out.println("firstCaterReaderCond = " + firstCaterReaderCond);
 				if(hasReaderArrived())
 					firstCaterReaderCond = false;
 				try {WRITE_CONDITION.wait();}
@@ -264,8 +265,8 @@ public class Server implements Crew{
 			}
 			myServiceNum = removeWaitingWriter();
 			setWriterActive();
-//				System.out.println("DEBUG: Writer woke up.. Now Active!");
-//				System.out.println("DEBUG: Writer: ServiceNum = " + myServiceNum);
+				System.out.println("DEBUG: Writer woke up.. Now Active!");
+				System.out.println("DEBUG: Writer: ServiceNum = " + myServiceNum);
 			sharedObject = newVal;
 			//now sleep for opTime
 			try {Thread.sleep(getOpTime(cNum, "writer"));}
@@ -274,7 +275,7 @@ public class Server implements Crew{
 			writersLog.add(new Formatter(myServiceNum,sharedObject, "W" + cNum));
 			setWriterNotActive();
 			WRITE_CONDITION.notifyAll();	//I am done, wake everyone up
-//			System.out.println("DEBUG: Writer: Notified All. Now sending values back");
+			System.out.println("DEBUG: Writer: Notified All. Now sending values back");
 		}
 		if(requestNum.get() == numAccesses)
 			printOutput();

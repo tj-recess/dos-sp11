@@ -25,12 +25,12 @@ public class Client
 	
 	public static void main(String[] args)
 	{
-		if(args.length < 5)
+		if(args.length < 6)
 		{
 			System.out.println("Usage : Client <reader | writer>  <clientNumber> <numAccesses> <sleepTime> <serverhost> <rmiPort>");
 			System.exit(-1);
 		}
-//		System.out.println("My values receieved from start.java - " + args[0] + ", " + args[1] + ", " + args[2] + ", " + args[3]);
+		System.out.println("My values receieved from start.java - " + args[0] + ", " + args[1] + ", " + args[2] + ", " + args[3] + ", " + args[4] + ", " + args[5]);
 		Client aClient = new Client(args[0], args[1], args[2], args[3]);
 		//now try connecting to server
 
@@ -53,7 +53,7 @@ public class Client
 
 	private void getProxy(String hostname, String rmiPort) throws AccessException, RemoteException, NotBoundException
 	{
-		serverProxy = (Crew)LocateRegistry.getRegistry(hostname, Integer.parseInt(rmiPort)).lookup("Crew");
+		serverProxy = (Crew)LocateRegistry.getRegistry(hostname, Integer.parseInt(rmiPort)).lookup("arpit");
 	}
 
 
@@ -87,7 +87,7 @@ public class Client
 		{
 			ReplyPacket myPacket = null;
 			try {
-				myPacket = serverProxy.readData(cNum);
+				myPacket = serverProxy.writeData(cNum);
 			} catch (RemoteException e) {
 				System.err.println("DEBUG (Writer) : couldn't read data from server, **Exception.");
 				e.printStackTrace();
@@ -102,6 +102,7 @@ public class Client
 			int myRequestNum = myPacket.getRequestNum();
 			int myServiceNum = myPacket.getServiceNum();
 			//print received values in proper format
+			System.out.println("DEBUG:Client(Writer) myPacket recvd. values are -req =  " + myRequestNum + ", servNum = " + myServiceNum);
 			fout.format(format, myRequestNum, myServiceNum);
 			try{Thread.sleep(cSleepTime);}
 			catch(InterruptedException iex){/*Ignore*/}
@@ -131,7 +132,6 @@ public class Client
 				System.err.println("DEBUG (Reader) : couldn't read data from server, **Exception.");
 				e.printStackTrace();
 			}
-//			System.out.println("DEBUG:Client(Reader) sent data to server " + i + "time, waiting for response");
 			if(myPacket == null)
 			{	
 				System.err.println("No data received in first attempt, trying again!");
@@ -142,6 +142,7 @@ public class Client
 			int valueReceived = myPacket.getSharedObjectVal();
 			int myServiceNum = myPacket.getServiceNum();
 			//print all three things in proper format
+			System.out.println("DEBUG:Client(Reader) myPacket recvd. values are -req =  " + myRequestNum + ", val = " +  valueReceived + ", servNum = " + myServiceNum);
 			fout.format(format, myRequestNum, myServiceNum, valueReceived);
 			try{Thread.sleep(cSleepTime);}
 			catch(InterruptedException iex){/*Ignore*/}					
