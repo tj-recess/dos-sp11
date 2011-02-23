@@ -3,9 +3,9 @@ import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -66,7 +66,8 @@ public class Server implements Crew{
 //		System.out.println("DEBUG://connection established, now start actual server");
 //		System.out.println("DEBUG: Actual Server recieved args[0] = " + args[0] + ", args[1] = " + args[1]);
 		
-		Server aServer = new Server();
+		Server aServer;
+		aServer = new Server();
 		
 		//get and return required objects from start.java
 		aServer.giveAndTake(startSocket);
@@ -105,11 +106,16 @@ public class Server implements Crew{
 		Crew stub = null;
 		try {
 			stub = (Crew) UnicastRemoteObject.exportObject(this, 0);
-			LocateRegistry.getRegistry(rmiPort).bind("arpit", stub);
+			Registry reg = LocateRegistry.getRegistry(rmiPort); 
+			if(reg == null)
+			{
+				System.err.println("DEBUG: Server: Can't loacte registery at port = " + rmiPort);
+				System.exit(-1);
+			}
+			System.out.println("Server: DEBUG: reg.REGISTRY_PORT = " + reg.REGISTRY_PORT);
+			reg.rebind("arpit", stub);
+			System.out.println("Server is bound now!!!");
 		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (AlreadyBoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -129,6 +135,13 @@ public class Server implements Crew{
 		writers = new ArrayList<RW>();
 		readersLog = new CopyOnWriteArrayList<Formatter>();
 		writersLog = new CopyOnWriteArrayList<Formatter>();
+		try{
+			System.out.println("RMI Port = " + rmiPort);
+		LocateRegistry.createRegistry(rmiPort);
+		} catch (RemoteException e) {
+			System.err.println("DEBUG: Server: Can't create Registry at " + rmiPort + " port.");
+			e.printStackTrace();
+		}
 	}
 
 	@Override
