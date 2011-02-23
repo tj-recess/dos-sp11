@@ -27,9 +27,12 @@ public class start {
 	{
 		start s = new start();
 		s.setup();
-		//now start clients on remote machines
-		s.startReaders();
 		
+		//start the server of start.java which starts actual server
+		s.startServerRemotely();
+
+		//now start clients on remote machines
+		s.startReaders();		
 		s.startWriters();
 //		System.out.println("start.java (DEBUG) : I'm done, you guys play now :-)");
 			
@@ -45,20 +48,18 @@ public class start {
 		numAccesses = conf.getNumAccesses();
 		server = conf.getServer();
 		rmiPort = conf.getRmiPort();
-		//start the server of start.java which starts actual server
-		startServerRemotely();
 	}
 	
 	private void startWriters()
 	{
 		String path = System.getProperty("user.dir"); // get current directory of the user
-		for(int i = numReaders+1; i <= numReaders + numWriters; i++)
+		for(int i = 0; i < numWriters; i++)
 		{
 			RW aWriter = writers.get(i);
 			String writerName = aWriter.getName();	//reader/writer's name starts from (numReaders + 1) to n (not 0 to n-1)
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + writerName + " cd " + path + " ; java Client writer " + i + " " + numAccesses + " " + aWriter.getSleepTime() + " " + server + " " + rmiPort);
-				//new Thread(new ClientOutputStreamReader(remote, writerName, "input")).start();
+				new Thread(new ClientOutputStreamReader(remote, writerName, "input")).start();
 				new Thread(new ClientOutputStreamReader(remote, writerName, "error")).start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote writer client : " + writerName);
@@ -70,13 +71,13 @@ public class start {
 	{
 		String path = System.getProperty("user.dir"); // get current directory of the user
 
-		for(int i = 1; i <= numReaders; i++)
+		for(int i = 0; i < numReaders; i++)
 		{
 			RW aReader = readers.get(i);
 			String readerName = aReader.getName();	//reader/writer's name starts from 1 to n (not 0 to n-1)
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + readerName + " cd " + path + " ; java Client reader " + i + " " + numAccesses + " " + aReader.getSleepTime() + " " + server + " " + rmiPort);
-				//new Thread(new ClientOutputStreamReader(remote, readerName, "input")).start();
+				new Thread(new ClientOutputStreamReader(remote, readerName, "input")).start();
 				new Thread(new ClientOutputStreamReader(remote, readerName, "error")).start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote reader client : " + readerName );

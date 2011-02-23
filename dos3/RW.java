@@ -3,9 +3,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.io.Serializable;
 
 
-public class RW
+public class RW implements Serializable
 {
 	private String name;
 	private int opTime;
@@ -117,6 +118,9 @@ class ConfigReader
 	
 	ConfigReader(String filePath)
 	{
+		readers = new ArrayList<RW>();
+		writers = new ArrayList<RW>();
+		
 		//read configuration from system.properties file
 		Properties sysProp = new Properties();
 		try {
@@ -147,7 +151,7 @@ class ConfigReader
 			String readerName = sysProp.getProperty(readerKey);	//reader/writer's name starts from 1 to n (not 0 to n-1)
 			String opTime = sysProp.getProperty(readerKey + ".opTime");
 			String sleepTime = sysProp.getProperty(readerKey + ".sleepTime");
-//			System.out.println("DEBUG: Config : " + readerName + ", " + opTime + ", " + sleepTime);
+			System.out.println("DEBUG: Config : " + readerName + ", " + opTime + ", " + sleepTime);
 			readers.add(new RW(readerName, Integer.parseInt(opTime), Integer.parseInt(sleepTime), i));	
 		}
 		//setup writers from config file
@@ -158,7 +162,7 @@ class ConfigReader
 			String opTime = sysProp.getProperty(writerKey + ".opTime");
 			String sleepTime = sysProp.getProperty(writerKey + ".sleepTime");
 //			System.out.println("DEBUG: Config : " + writerKey + ", " + opTime + ", " + sleepTime);
-//			System.out.println("DEBUG: Config : " + writerName + ", " + opTime + ", " + sleepTime);
+			System.out.println("DEBUG: Config : " + writerName + ", " + opTime + ", " + sleepTime);
 			writers.add(new RW(writerName, Integer.parseInt(opTime), Integer.parseInt(sleepTime), i));
 		}		
 	}
