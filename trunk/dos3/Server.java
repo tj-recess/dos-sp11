@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -71,16 +72,39 @@ public class Server implements Crew{
 		aServer = new Server();
 		
 		//get and return required objects from start.java
-		aServer.giveAndTake(startSocket);
-		
-		
+		aServer.receiveData(startSocket);
+				
 		//server started, now register this with RMI registry
 //		System.out.println("DEBUG://server started, now register this with RMI registry");
-		aServer.register();
+		try {
+			aServer.register();
+		} catch (RemoteException e) {
+			//can't register server now, send failure to start so that clients are not started
+			aServer.sendData(startSocket, false);
+			System.exit(-10);
+		}
+		
+		aServer.sendData(startSocket, true);
 	}
 	
+	private void sendData(Socket startSocket, boolean result)
+	{
+		try
+		{
+			ObjectOutputStream oos = new ObjectOutputStream(startSocket.getOutputStream());
+			if(result)
+				oos.writeObject("SUCCESS");
+			else
+				oos.writeObject("FAILURE");
+		}
+		catch (IOException ioex)
+		{
+			System.out.println("Server: DEBUG: " + ioex.getMessage());
+		}
+	}
+
 	@SuppressWarnings("unchecked")
-	private void giveAndTake(Socket startSocket) {
+	private void receiveData(Socket startSocket) {
 		try 
 		{
 			ObjectInputStream ois = new ObjectInputStream(startSocket.getInputStream());
@@ -118,22 +142,17 @@ public class Server implements Crew{
 		}
 	}
 
-	private void register() {
+	private void register() throws RemoteException{
 		Crew stub = null;
-		try {
-			stub = (Crew) UnicastRemoteObject.exportObject(this, 0);
-			Registry reg = LocateRegistry.getRegistry(rmiPort); 
-			if(reg == null)
-			{
-				System.err.println("DEBUG: Server: Can't loacte registery at port = " + rmiPort);
-				System.exit(-1);
-			}
-			reg.rebind("arpit", stub);
-			System.out.println("Server is bound now!!!");
-		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		stub = (Crew) UnicastRemoteObject.exportObject(this, 0);
+		Registry reg = LocateRegistry.getRegistry(rmiPort); 
+		if(reg == null)
+		{
+			System.err.println("DEBUG: Server: Can't loacte registery at port = " + rmiPort);
+			System.exit(-1);
 		}
+		reg.rebind("arpit", stub);
+		System.out.println("Server is bound now!!!");
 	}
 
 	public Server()
@@ -236,13 +255,13 @@ public class Server implements Crew{
 			Formatter f = writersLog.get(i);
 			System.out.format(writerFormat, f.getServiceNum(), f.getObjectVal(), f.getWrittenBy());
 		}
-		try{
-		Registry reg = LocateRegistry.getRegistry(rmiPort); 
-		UnicastRemoteObject.unexportObject(reg, true);
+//		try{
+//		Registry reg = LocateRegistry.getRegistry(rmiPort); 
+//		UnicastRemoteObject.unexportObject(reg, true);
 //		reg.unbind("arpit");
-		}
-		catch(RemoteException re){/*Ignore*/}
-		catch(Exception re){/*Ignore*/}
+//		}
+//		catch(RemoteException re){/*Ignore*/}
+//		catch(Exception re){/*Ignore*/}
 	}
 
 	@Override

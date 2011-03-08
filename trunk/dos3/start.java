@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -29,7 +30,9 @@ public class start {
 		s.setup();
 		
 		//start the server of start.java which starts actual server
-		s.startServerRemotely();
+		//if it's not started properly then exit, don't instantiate clients
+		if(!s.startServerRemotely())
+			System.exit(-10);
 
 		//now start clients on remote machines
 		s.startReaders();		
@@ -88,7 +91,7 @@ public class start {
 		}		
 	}
 
-	private void startServerRemotely() 
+	private boolean startServerRemotely() 
 	{	 
 		try
 		{
@@ -131,14 +134,24 @@ public class start {
 			oos.writeObject(writers);
 			oos.writeInt(numAccesses);
 			oos.writeInt(rmiPort);
-			oos.flush();			
+			oos.flush();
+			
+			//now wait for response from server, if it started successfully then only start clients
+			ObjectInputStream ois = new ObjectInputStream(actualServer.getInputStream());
+			String response = (String)ois.readObject();
+			if(response.equalsIgnoreCase("SUCCESS"))
+				return true;
 		}
 		catch(IOException ioex)
 		{
 			System.err.println("start.java :FATAL: can't start communicating with remote host : " + server + " **Exception : " + ioex.toString());
 //			ioex.printStackTrace();	//DEBUG
 			System.exit(-1);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		return false;
 	}
 
 	class ClientOutputStreamReader implements Runnable

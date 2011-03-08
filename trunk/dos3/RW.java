@@ -83,6 +83,7 @@ class Formatter
 
 class ReplyPacket implements Serializable
 {
+	private static final long serialVersionUID = -1008952271745816659L;
 	private int requestNum;
 	private int serviceNum;
 	private int sharedObjectVal;
