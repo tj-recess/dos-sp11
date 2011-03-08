@@ -29,6 +29,7 @@ public class Server implements Crew{
 	private AtomicInteger activeReadersCount;
 	private AtomicInteger waitingReadersCount;
 	private AtomicInteger waitingWritersCount;
+	private int finishedClientsCount = 0;
 	private boolean writerActive;
 	private boolean readerArrived = false;
 	private Object WRITE_CONDITION;
@@ -94,6 +95,14 @@ public class Server implements Crew{
 			numWriters = writers.size();
 			
 			System.out.println("RMI Port = " + rmiPort);
+//			Registry reg = LocateRegistry.getRegistry(rmiPort);
+//			System.out.println("reg = " + reg);
+//			try{LocateRegistry.getRegistry(rmiPort);}
+//			catch(Exception ex)
+//			{
+//				System.out.println("registry is not running already, starting now - ex = " + ex.toString());
+//				LocateRegistry.createRegistry(rmiPort);
+//			}
 			LocateRegistry.createRegistry(rmiPort);
 		}
 		catch (RemoteException e) {
@@ -119,7 +128,6 @@ public class Server implements Crew{
 				System.err.println("DEBUG: Server: Can't loacte registery at port = " + rmiPort);
 				System.exit(-1);
 			}
-			System.out.println("Server: DEBUG: reg.REGISTRY_PORT = " + reg.REGISTRY_PORT);
 			reg.rebind("arpit", stub);
 			System.out.println("Server is bound now!!!");
 		} catch (RemoteException e) {
@@ -196,10 +204,12 @@ public class Server implements Crew{
 			System.out.println("DEBUG: Reader: trying to wake up everyone waiting");
 			WRITE_CONDITION.notifyAll();	//wake up everyone and then check for reader/writer conflict again
 			System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
+			finishedClientsCount++;
+			
+			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
+				printOutput();
 		}
 		
-		if(requestNum.get() == numAccesses)
-			printOutput();
 		
 		return new ReplyPacket(myRequestNum, sharedObjectValue, myServiceNum);
 //		System.out.println("DEBUG: ReadData: sent reply packet");
@@ -226,6 +236,13 @@ public class Server implements Crew{
 			Formatter f = writersLog.get(i);
 			System.out.format(writerFormat, f.getServiceNum(), f.getObjectVal(), f.getWrittenBy());
 		}
+		try{
+		Registry reg = LocateRegistry.getRegistry(rmiPort); 
+		UnicastRemoteObject.unexportObject(reg, true);
+//		reg.unbind("arpit");
+		}
+		catch(RemoteException re){/*Ignore*/}
+		catch(Exception re){/*Ignore*/}
 	}
 
 	@Override
@@ -276,9 +293,11 @@ public class Server implements Crew{
 			setWriterNotActive();
 			WRITE_CONDITION.notifyAll();	//I am done, wake everyone up
 			System.out.println("DEBUG: Writer: Notified All. Now sending values back");
+			
+			finishedClientsCount++;
+			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
+				printOutput();
 		}
-		if(requestNum.get() == numAccesses)
-			printOutput();
 		return new ReplyPacket(myRequestNum, newVal, myServiceNum);
 	}
 	
