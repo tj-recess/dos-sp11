@@ -41,7 +41,7 @@ public class start {
 		s.startReaders();		
 		s.startWriters();
 //		System.out.println("start.java (DEBUG) : I'm done, you guys play now :-)");
-		s.joinThreads();
+//		s.joinThreads();
 	}
 	
 	private void joinThreads()
