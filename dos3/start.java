@@ -22,6 +22,7 @@ public class start {
 	private Socket actualServer;
 	private Thread[] allWriterThreads;
 	private Thread[] allReaderThreads;
+	private Thread[] serverThreads;
 	
 	/**
 	 * @param args nothing to be done
@@ -40,9 +41,21 @@ public class start {
 		s.startReaders();		
 		s.startWriters();
 //		System.out.println("start.java (DEBUG) : I'm done, you guys play now :-)");
-		
+		s.joinThreads();
+	}
+	
+	private void joinThreads()
+	{
+		try{
 		//join all the threads before exiting so that we keep getting server's output
-			
+		for(int i = 0; i < allWriterThreads.length; i++)
+			allWriterThreads[i].join();
+
+		for(int i = 0; i < allReaderThreads.length; i++)
+			allReaderThreads[i].join();
+		serverThreads[0].join();
+		serverThreads[1].join();
+		}catch(InterruptedException iex){/*ignore*/}	
 	}
 
 	public void setup()
@@ -58,6 +71,7 @@ public class start {
 		System.out.println("DEBUG: start.java: rmiPort = " + rmiPort);
 		allWriterThreads = new Thread[numWriters*2];
 		allReaderThreads = new Thread[numReaders*2];
+		serverThreads = new Thread[2];
 	}
 	
 	private void startWriters()
@@ -125,8 +139,10 @@ public class start {
 			String path = System.getProperty("user.dir");
 //			System.out.println("me.getInetAddress().getHostName(), me.getLocalPort()" + me.getInetAddress().getHostName() + ", " + me.getLocalPort());
 			Process actualServerProcess = Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; javac Server.java ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
-			new Thread(new ClientOutputStreamReader(actualServerProcess, "SERVER", "input")).start();	//leaving 2nd arg blank to 
-			new Thread(new ClientOutputStreamReader(actualServerProcess, "SERVER", "error")).start();	//avoid printing any name before output
+			serverThreads[0] = new Thread(new ClientOutputStreamReader(actualServerProcess, "SERVER", "input"));	//leaving 2nd arg blank to 
+			serverThreads[0].start();
+			serverThreads[1] = new Thread(new ClientOutputStreamReader(actualServerProcess, "SERVER", "error"));	//avoid printing any name before output
+			serverThreads[1].start();
 			//TODO - remove the name "SERVER" above.
 			System.out.print("Trying to establish connection with Actual server " + server + "...");
 			while(actualServer == null)

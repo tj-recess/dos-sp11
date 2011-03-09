@@ -230,7 +230,7 @@ public class Server implements Crew{
 			WRITE_CONDITION.notifyAll();	//wake up everyone and then check for reader/writer conflict again
 			System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
 //			finishedClientsCount++;
-			System.out.println("Server(Reader): DEBUG: finishedClients = " + finishedClientsCount);
+			//System.out.println("Server(Reader): DEBUG: finishedClients = " + finishedClientsCount);
 //			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
 //			{
 //				System.out.println("Server: DEBUG: trying to print data now");
@@ -327,7 +327,7 @@ public class Server implements Crew{
 			System.out.println("DEBUG: Writer: Notified All. Now sending values back");
 			
 //			finishedClientsCount++;
-			System.out.println("Server(Writer): DEBUG: finishedClients = " + finishedClientsCount);
+//			System.out.println("Server(Writer): DEBUG: finishedClients = " + finishedClientsCount);
 //			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
 //			{
 //				System.out.println("Server: DEBUG: trying to print data now");
