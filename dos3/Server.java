@@ -58,7 +58,7 @@ public class Server implements Crew{
 			System.err.println("Actual Server : bad port " + args[1] + " received from start.java, exception = " + e.getMessage());
 			System.exit(-2);
 		} catch (UnknownHostException e) {
-			System.out.println("Client : Not able to resolve host. **Unknown host exception - " + e.getMessage());
+			System.err.println("Client : Not able to resolve host. **Unknown host exception - " + e.getMessage());
 			System.exit(-2);
 		} catch (IOException ioex) {
 			System.err.println("Actual Server : can't start connection with start.java, exception = " + ioex.getMessage());
@@ -119,7 +119,7 @@ public class Server implements Crew{
 			numReaders = readers.size();
 			numWriters = writers.size();
 			
-			System.out.println("RMI Port = " + rmiPort);
+//			System.out.println("DEBUG: RMI Port = " + rmiPort);
 //			Registry reg = LocateRegistry.getRegistry(rmiPort);
 //			System.out.println("reg = " + reg);
 //			try{LocateRegistry.getRegistry(rmiPort);}
@@ -153,7 +153,7 @@ public class Server implements Crew{
 			System.exit(-1);
 		}
 		reg.rebind("arpit", stub);
-		System.out.println("Server is bound now!!!");
+//		System.out.println("DEBUG: Server is bound now!!!");
 	}
 	static 
 	{
@@ -201,7 +201,7 @@ public class Server implements Crew{
 
 		int myRequestNum = addWaitingReader();
 		int myServiceNum = -1;	//to indicate error
-		System.out.println("Reader : requestNum = " + myRequestNum);
+//		System.out.println("DEBUG: Reader : requestNum = " + myRequestNum);
 		synchronized(WRITE_CONDITION)
 		{
 			while(isWriterActive())	//no reading allowed if someone is writing
@@ -301,7 +301,7 @@ public class Server implements Crew{
 			{													//reader then writer should first wait
 				//wait on read condition until some writer notifies
 //					System.out.println("DEBUG: Writer : waiting on write condition until someone notifies. i = " + i + ", numReaders = " + getNumReaders() + ", activeReaders = " + getActiveReadersCount() + ", waitingReaders = " + getWaitingReadersCount());
-					System.out.println("firstCaterReaderCond = " + firstCaterReaderCond);
+//					System.out.println("DEBUG: firstCaterReaderCond = " + firstCaterReaderCond);
 				if(hasReaderArrived())
 					firstCaterReaderCond = false;
 				try {WRITE_CONDITION.wait();}
