@@ -31,9 +31,10 @@ public class Server implements Crew{
 	private AtomicInteger waitingReadersCount;
 	private AtomicInteger waitingWritersCount;
 	private int finishedClientsCount = 0;
+	private static AtomicInteger finishedClients;
 	private boolean writerActive;
 	private boolean readerArrived = false;
-	private Object WRITE_CONDITION;
+	private static Object WRITE_CONDITION;
 	private CopyOnWriteArrayList<Formatter> readersLog;
 	private CopyOnWriteArrayList<Formatter> writersLog;
 	private	boolean firstCaterReaderCond = true;
@@ -155,6 +156,10 @@ public class Server implements Crew{
 		reg.rebind("arpit", stub);
 		System.out.println("Server is bound now!!!");
 	}
+	static 
+	{
+		finishedClients = new AtomicInteger(0);
+	}
 
 	public Server()
 	{
@@ -224,10 +229,13 @@ public class Server implements Crew{
 			System.out.println("DEBUG: Reader: trying to wake up everyone waiting");
 			WRITE_CONDITION.notifyAll();	//wake up everyone and then check for reader/writer conflict again
 			System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
-			finishedClientsCount++;
-			
-			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
+//			finishedClientsCount++;
+			System.out.println("Server(Reader): DEBUG: finishedClients = " + finishedClientsCount);
+//			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
+//			{
+//				System.out.println("Server: DEBUG: trying to print data now");
 				printOutput();
+//			}
 		}
 		
 		
@@ -237,6 +245,12 @@ public class Server implements Crew{
 
 	private void printOutput()
 	{
+		synchronized(Server.class)
+		{
+		System.out.println("Server: DEBUG: print : finishedClients = " + finishedClients.get());
+		if(finishedClients.incrementAndGet() != numAccesses*(numReaders + numWriters))
+			return;
+		}
 		System.out.println("Read Requests:");
 		String readerFormat = "%16s\t%12s\t%7s\t%14s%n";
 		System.out.format(readerFormat, "Service Sequence", "Object Value", "Read by", "Num of Readers");
@@ -310,13 +324,17 @@ public class Server implements Crew{
 			catch (InterruptedException e) {/*Ignore*/}
 			//add output to writers log
 			writersLog.add(new Formatter(myServiceNum,sharedObject, "W" + cNum));
-			setWriterNotActive();
-			WRITE_CONDITION.notifyAll();	//I am done, wake everyone up
 			System.out.println("DEBUG: Writer: Notified All. Now sending values back");
 			
-			finishedClientsCount++;
-			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
+//			finishedClientsCount++;
+			System.out.println("Server(Writer): DEBUG: finishedClients = " + finishedClientsCount);
+//			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
+//			{
+//				System.out.println("Server: DEBUG: trying to print data now");
 				printOutput();
+//			}
+			setWriterNotActive();
+			WRITE_CONDITION.notifyAll();	//I am done, wake everyone up
 		}
 		return new ReplyPacket(myRequestNum, newVal, myServiceNum);
 	}
