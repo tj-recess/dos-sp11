@@ -1,0 +1,32 @@
+Report
+
+Note: RMI Registry process is started automatically through the code, no need to start it manually. If the code doesn't work and port is occupied, just change the port number in system.properties file and it should work.
+
+About the code : The code contains following classes - 
+1. start - This starts the server as specified in system.properties file. Once it receives status (SUCCESS) form server, all the remote clients are created. 
+2. Server - This starts rmiRegistry automatically from the code. Once done, it binds it's own object with name "arpit" which remote clients try to access. After binding, it sends success/failure message to start.java so that clients can be instantiated accordingly. Once all the clients are done (calculated from total number of clients*numAccesses) it prints output. 
+3. Client - This class invokes methods on Server (via the proxy object it receives from rmiRegistry) repetitively based on it's sleepTime and numAccesses as specified in system.properties file. It's parameter values are received from start class.
+4. RW - This is a helper class useful in maintaining various parameters or readers and writers (that's why RW) when read from system.properties file. Once these objects are created, they can be passed to any class as and when required.
+5. Formatter - This class helps in displaying formatted output for readers and writers. ClientHandler uses this class and pass it on Server which displays the output.
+6. ConfigReader - This reads the data from system.properties file and provides it to various classes as and when required.
+7. ReplyPacket - This class implements Serializable interface and contains formatted packet (data) which has to be sent out to clients via remote method.
+
+This project also contains one interface - 
+1. Crew - This is a public interface implemented by Server class. This exposes the methods which clients can invoke remotely. Every method signature has to throw a RemoteException.
+
+
+Difficulties faced -
+1. Server is not allowing many processes to run simultaneously. The one specified in requirements document (sand.cise.ufl.edu) is a solaris machine having an older version of java which made code incompatible. 
+2. Debugging becomes very difficult because of some server issues which TAs are aware of. It would be great if those issues are resolved before next assignment.
+3. Both the comments above were written in last report as well but no action has been taken yet. Server are really overloaded and don't allow multiple ssh requests.
+
+
+Learning - 
+1. Various concepts of synchronization - use of wait, notify and notifyAll. 
+2. Making code independent of configuration values by using Properties class.
+3. RMI approach to follow CREW paradigm, exposing methods to Remote interface and invoking remote methods without using any explicity communication.
+
+
+Submitted By - 
+Arpit Tripathi
+UFID - 6135-0118
