@@ -20,6 +20,8 @@ public class start {
 	int rmiPort;
 	private ServerSocket me;
 	private Socket actualServer;
+	private Thread[] allWriterThreads;
+	private Thread[] allReaderThreads;
 	
 	/**
 	 * @param args nothing to be done
@@ -38,6 +40,8 @@ public class start {
 		s.startReaders();		
 		s.startWriters();
 //		System.out.println("start.java (DEBUG) : I'm done, you guys play now :-)");
+		
+		//join all the threads before exiting so that we keep getting server's output
 			
 	}
 
@@ -52,6 +56,8 @@ public class start {
 		server = conf.getServer();
 		rmiPort = conf.getRmiPort();
 		System.out.println("DEBUG: start.java: rmiPort = " + rmiPort);
+		allWriterThreads = new Thread[numWriters*2];
+		allReaderThreads = new Thread[numReaders*2];
 	}
 	
 	private void startWriters()
@@ -64,8 +70,10 @@ public class start {
 			int cNum = i + 1 + numReaders;
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + writerName + " cd " + path + " ; java Client writer " + cNum + " " + numAccesses + " " + aWriter.getSleepTime() + " " + server + " " + rmiPort);
-				new Thread(new ClientOutputStreamReader(remote, writerName, "input")).start();
-				new Thread(new ClientOutputStreamReader(remote, writerName, "error")).start();
+				allWriterThreads[i*2] = new Thread(new ClientOutputStreamReader(remote, writerName, "input"));
+				allWriterThreads[i*2].start();
+				allWriterThreads[i*2 + 1] = new Thread(new ClientOutputStreamReader(remote, writerName, "error"));
+				allWriterThreads[i*2 + 1].start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote writer client : " + writerName);
 			}
@@ -83,8 +91,10 @@ public class start {
 			int cNum = i + 1;
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + readerName + " cd " + path + " ; java Client reader " + cNum + " " + numAccesses + " " + aReader.getSleepTime() + " " + server + " " + rmiPort);
-				new Thread(new ClientOutputStreamReader(remote, readerName, "input")).start();
-				new Thread(new ClientOutputStreamReader(remote, readerName, "error")).start();
+				allReaderThreads[i*2] = new Thread(new ClientOutputStreamReader(remote, readerName, "input"));
+				allReaderThreads[i*2].start();
+				allReaderThreads[i*2 + 1] = new Thread(new ClientOutputStreamReader(remote, readerName, "error"));
+				allReaderThreads[i*2 + 1].start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote reader client : " + readerName );
 			}
@@ -115,9 +125,9 @@ public class start {
 			String path = System.getProperty("user.dir");
 //			System.out.println("me.getInetAddress().getHostName(), me.getLocalPort()" + me.getInetAddress().getHostName() + ", " + me.getLocalPort());
 			Process actualServerProcess = Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; javac Server.java ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
-			new Thread(new ClientOutputStreamReader(actualServerProcess, "", "input")).start();	//leaving 2nd arg blank to 
-			new Thread(new ClientOutputStreamReader(actualServerProcess, "", "error")).start();	//avoid printing any name before output
-					
+			new Thread(new ClientOutputStreamReader(actualServerProcess, "SERVER", "input")).start();	//leaving 2nd arg blank to 
+			new Thread(new ClientOutputStreamReader(actualServerProcess, "SERVER", "error")).start();	//avoid printing any name before output
+			//TODO - remove the name "SERVER" above.
 			System.out.print("Trying to establish connection with Actual server " + server + "...");
 			while(actualServer == null)
 			{
@@ -192,6 +202,7 @@ public class start {
 				try {exitVal = clientProcID.waitFor();}
 				catch (InterruptedException e) {/*Ignore*/}
 				Runtime.getRuntime().exec("ssh " + clientName + " skill java");
+				System.out.println(prefix + "died!");
 				if(exitVal != 0)
 					Runtime.getRuntime().exec("skill java");
 			}
