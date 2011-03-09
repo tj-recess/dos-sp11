@@ -104,6 +104,15 @@ public class Client
 			//print received values in proper format
 			System.out.println("DEBUG:Client(Writer) myPacket recvd. values are -req =  " + myRequestNum + ", servNum = " + myServiceNum);
 			fout.format(format, myRequestNum, myServiceNum);
+			
+			//now call printOutput to indicate I have received values
+			try {
+				serverProxy.printOutput();
+			} catch (RemoteException e) 
+			{
+				System.out.println("DEBUG(Client): couldn't invoke printOutput bcoz of exception: ex = " + e.getMessage());
+			}
+			
 			try{Thread.sleep(cSleepTime);}
 			catch(InterruptedException iex){/*Ignore*/}
 		}		
@@ -144,8 +153,17 @@ public class Client
 			//print all three things in proper format
 			System.out.println("DEBUG:Client(Reader) myPacket recvd. values are -req =  " + myRequestNum + ", val = " +  valueReceived + ", servNum = " + myServiceNum);
 			fout.format(format, myRequestNum, myServiceNum, valueReceived);
+			
+			//now call printOutput to indicate I have received values
+			try {
+				serverProxy.printOutput();
+			} catch (RemoteException e) 
+			{
+				System.out.println("DEBUG(Client): couldn't invoke printOutput bcoz of exception: ex = " + e.getMessage());
+			}
+			
 			try{Thread.sleep(cSleepTime);}
 			catch(InterruptedException iex){/*Ignore*/}					
-		}		
+		}
 	}
 } 

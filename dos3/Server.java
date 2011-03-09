@@ -229,27 +229,21 @@ public class Server implements Crew{
 			System.out.println("DEBUG: Reader: trying to wake up everyone waiting");
 			WRITE_CONDITION.notifyAll();	//wake up everyone and then check for reader/writer conflict again
 			System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
-//			finishedClientsCount++;
-			//System.out.println("Server(Reader): DEBUG: finishedClients = " + finishedClientsCount);
-//			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
-//			{
-//				System.out.println("Server: DEBUG: trying to print data now");
-				printOutput();
-//			}
 		}
 		
-		
+		System.out.println("DEBUG: ReadData: sending reply packet");		
 		return new ReplyPacket(myRequestNum, sharedObjectValue, myServiceNum);
-//		System.out.println("DEBUG: ReadData: sent reply packet");
+
 	}
 
-	private void printOutput()
+	public void printOutput() throws RemoteException
 	{
 		synchronized(Server.class)
 		{
-		System.out.println("Server: DEBUG: print : finishedClients = " + finishedClients.get());
-		if(finishedClients.incrementAndGet() != numAccesses*(numReaders + numWriters))
-			return;
+			int howMany = finishedClients.incrementAndGet();
+			System.out.println("Server: DEBUG: print : finishedClients = " + howMany);
+			if(howMany != numAccesses*(numReaders + numWriters))
+				return;
 		}
 		System.out.println("Read Requests:");
 		String readerFormat = "%16s\t%12s\t%7s\t%14s%n";
@@ -270,13 +264,13 @@ public class Server implements Crew{
 			Formatter f = writersLog.get(i);
 			System.out.format(writerFormat, f.getServiceNum(), f.getObjectVal(), f.getWrittenBy());
 		}
-//		try{
-//		Registry reg = LocateRegistry.getRegistry(rmiPort); 
-//		UnicastRemoteObject.unexportObject(reg, true);
-//		reg.unbind("arpit");
-//		}
-//		catch(RemoteException re){/*Ignore*/}
-//		catch(Exception re){/*Ignore*/}
+		try{
+			Registry reg = LocateRegistry.getRegistry(rmiPort);
+			reg.unbind("arpit");
+			if(UnicastRemoteObject.unexportObject(this, true))
+				System.out.println("DEBUG: Successfully unexported server object.");			
+		}
+		catch(Exception re){/*Ignore*/}
 	}
 
 	@Override
@@ -324,17 +318,10 @@ public class Server implements Crew{
 			catch (InterruptedException e) {/*Ignore*/}
 			//add output to writers log
 			writersLog.add(new Formatter(myServiceNum,sharedObject, "W" + cNum));
-			System.out.println("DEBUG: Writer: Notified All. Now sending values back");
 			
-//			finishedClientsCount++;
-//			System.out.println("Server(Writer): DEBUG: finishedClients = " + finishedClientsCount);
-//			if(finishedClientsCount == numAccesses*(numReaders + numWriters))
-//			{
-//				System.out.println("Server: DEBUG: trying to print data now");
-				printOutput();
-//			}
 			setWriterNotActive();
 			WRITE_CONDITION.notifyAll();	//I am done, wake everyone up
+			System.out.println("DEBUG: Writer: Notified All. Now sending values back");
 		}
 		return new ReplyPacket(myRequestNum, newVal, myServiceNum);
 	}

@@ -6,4 +6,5 @@ public interface Crew extends Remote
 {
 	ReplyPacket readData(int cNum) throws RemoteException;
 	ReplyPacket writeData(int cNum) throws RemoteException;
+	void printOutput() throws RemoteException;
 }
