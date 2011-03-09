@@ -30,7 +30,7 @@ public class Client
 			System.out.println("Usage : Client <reader | writer>  <clientNumber> <numAccesses> <sleepTime> <serverhost> <rmiPort>");
 			System.exit(-1);
 		}
-		System.out.println("My values receieved from start.java - " + args[0] + ", " + args[1] + ", " + args[2] + ", " + args[3] + ", " + args[4] + ", " + args[5]);
+//		System.out.println("My values receieved from start.java - " + args[0] + ", " + args[1] + ", " + args[2] + ", " + args[3] + ", " + args[4] + ", " + args[5]);
 		Client aClient = new Client(args[0], args[1], args[2], args[3]);
 		//now try connecting to server
 
