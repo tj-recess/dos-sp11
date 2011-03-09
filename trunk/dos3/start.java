@@ -68,7 +68,7 @@ public class start {
 		numAccesses = conf.getNumAccesses();
 		server = conf.getServer();
 		rmiPort = conf.getRmiPort();
-		System.out.println("DEBUG: start.java: rmiPort = " + rmiPort);
+//		System.out.println("DEBUG: start.java: rmiPort = " + rmiPort);
 		allWriterThreads = new Thread[numWriters*2];
 		allReaderThreads = new Thread[numReaders*2];
 		serverThreads = new Thread[2];
@@ -139,11 +139,10 @@ public class start {
 			String path = System.getProperty("user.dir");
 //			System.out.println("me.getInetAddress().getHostName(), me.getLocalPort()" + me.getInetAddress().getHostName() + ", " + me.getLocalPort());
 			Process actualServerProcess = Runtime.getRuntime().exec("ssh " + server + " cd " + path + " ; javac Server.java ; java Server " + me.getInetAddress().getHostName() + " " + me.getLocalPort());
-			serverThreads[0] = new Thread(new ClientOutputStreamReader(actualServerProcess, "SERVER", "input"));	//leaving 2nd arg blank to 
+			serverThreads[0] = new Thread(new ClientOutputStreamReader(actualServerProcess, "", "input"));	//leaving 2nd arg blank to 
 			serverThreads[0].start();
-			serverThreads[1] = new Thread(new ClientOutputStreamReader(actualServerProcess, "SERVER", "error"));	//avoid printing any name before output
+			serverThreads[1] = new Thread(new ClientOutputStreamReader(actualServerProcess, "", "error"));	//avoid printing any name before output
 			serverThreads[1].start();
-			//TODO - remove the name "SERVER" above.
 			System.out.print("Trying to establish connection with Actual server " + server + "...");
 			while(actualServer == null)
 			{
@@ -173,9 +172,9 @@ public class start {
 			System.err.println("start.java :FATAL: can't start communicating with remote host : " + server + " **Exception : " + ioex.toString());
 //			ioex.printStackTrace();	//DEBUG
 			System.exit(-1);
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (ClassNotFoundException e)
+		{
+//			System.out.println("DEBUG: Unknown Data received from Client");
 		}
 		return false;
 	}
@@ -225,7 +224,7 @@ public class start {
 			catch(IOException ex)
 			{
 				/*Ignore*/
-				ex.printStackTrace();	//DEBUG
+//				ex.printStackTrace();	//DEBUG
 			}
 		}
 	}

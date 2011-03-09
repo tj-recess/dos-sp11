@@ -38,14 +38,11 @@ public class Client
 		try {
 			aClient.getProxy(args[4], args[5]);
 		} catch (AccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//			e.printStackTrace();	//DEBUG
 		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//			e.printStackTrace();	//DEBUG
 		} catch (NotBoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//			e.printStackTrace();	//DEBUG
 		}
 		
 		aClient.talkViaRMI();
@@ -89,8 +86,8 @@ public class Client
 			try {
 				myPacket = serverProxy.writeData(cNum);
 			} catch (RemoteException e) {
-				System.err.println("DEBUG (Writer) : couldn't read data from server, **Exception.");
-				e.printStackTrace();
+//				System.err.println("DEBUG (Writer) : couldn't read data from server, **Exception.");
+//				e.printStackTrace();
 			}
 			
 			if(myPacket == null)
@@ -102,7 +99,7 @@ public class Client
 			int myRequestNum = myPacket.getRequestNum();
 			int myServiceNum = myPacket.getServiceNum();
 			//print received values in proper format
-			System.out.println("DEBUG:Client(Writer) myPacket recvd. values are -req =  " + myRequestNum + ", servNum = " + myServiceNum);
+//			System.out.println("DEBUG:Client(Writer) myPacket recvd. values are -req =  " + myRequestNum + ", servNum = " + myServiceNum);
 			fout.format(format, myRequestNum, myServiceNum);
 			
 			//now call printOutput to indicate I have received values
@@ -110,7 +107,7 @@ public class Client
 				serverProxy.printOutput();
 			} catch (RemoteException e) 
 			{
-				System.out.println("DEBUG(Client): couldn't invoke printOutput bcoz of exception: ex = " + e.getMessage());
+//				System.out.println("DEBUG(Client): couldn't invoke printOutput bcoz of exception: ex = " + e.getMessage());
 			}
 			
 			try{Thread.sleep(cSleepTime);}
@@ -138,8 +135,8 @@ public class Client
 			try {
 				myPacket = serverProxy.readData(cNum);
 			} catch (RemoteException e) {
-				System.err.println("DEBUG (Reader) : couldn't read data from server, **Exception.");
-				e.printStackTrace();
+//				System.err.println("DEBUG (Reader) : couldn't read data from server, **Exception.");
+//				e.printStackTrace();
 			}
 			if(myPacket == null)
 			{	
@@ -151,7 +148,7 @@ public class Client
 			int valueReceived = myPacket.getSharedObjectVal();
 			int myServiceNum = myPacket.getServiceNum();
 			//print all three things in proper format
-			System.out.println("DEBUG:Client(Reader) myPacket recvd. values are -req =  " + myRequestNum + ", val = " +  valueReceived + ", servNum = " + myServiceNum);
+//			System.out.println("DEBUG:Client(Reader) myPacket recvd. values are -req =  " + myRequestNum + ", val = " +  valueReceived + ", servNum = " + myServiceNum);
 			fout.format(format, myRequestNum, myServiceNum, valueReceived);
 			
 			//now call printOutput to indicate I have received values
@@ -159,7 +156,7 @@ public class Client
 				serverProxy.printOutput();
 			} catch (RemoteException e) 
 			{
-				System.out.println("DEBUG(Client): couldn't invoke printOutput bcoz of exception: ex = " + e.getMessage());
+//				System.out.println("DEBUG(Client): couldn't invoke printOutput bcoz of exception: ex = " + e.getMessage());
 			}
 			
 			try{Thread.sleep(cSleepTime);}
