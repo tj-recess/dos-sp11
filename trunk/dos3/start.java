@@ -217,7 +217,7 @@ public class start {
 				try {exitVal = clientProcID.waitFor();}
 				catch (InterruptedException e) {/*Ignore*/}
 				Runtime.getRuntime().exec("ssh " + clientName + " skill java");
-				System.out.println(prefix + "died!");
+//				System.out.println(prefix + "DEBUG: died!");
 				if(exitVal != 0)
 					Runtime.getRuntime().exec("skill java");
 			}
