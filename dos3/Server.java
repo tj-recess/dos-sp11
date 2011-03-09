@@ -100,7 +100,7 @@ public class Server implements Crew{
 		}
 		catch (IOException ioex)
 		{
-			System.out.println("Server: DEBUG: " + ioex.getMessage());
+//			System.out.println("Server: DEBUG: " + ioex.getMessage());
 		}
 	}
 
@@ -137,10 +137,9 @@ public class Server implements Crew{
 		}
 		catch (IOException ioex)
 		{
-			System.err.println("can't send port to start.java, exception = " + ioex.toString());
+//			System.err.println("can't send port to start.java, exception = " + ioex.toString());
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//			System.err.println("DEBUG: Unknown data received from start.java");
 		}
 	}
 
@@ -150,7 +149,7 @@ public class Server implements Crew{
 		Registry reg = LocateRegistry.getRegistry(rmiPort); 
 		if(reg == null)
 		{
-			System.err.println("DEBUG: Server: Can't loacte registery at port = " + rmiPort);
+			System.err.println("FATAL: Server can't loacte registery at port = " + rmiPort + ". Exiting...");
 			System.exit(-1);
 		}
 		reg.rebind("arpit", stub);
@@ -207,7 +206,7 @@ public class Server implements Crew{
 		{
 			while(isWriterActive())	//no reading allowed if someone is writing
 			{
-				System.out.println("DEBUG: Reader - wait on write condition until some writer notifies");
+//				System.out.println("DEBUG: Reader - wait on write condition until some writer notifies");
 				//wait on read condition until some writer notifies
 				try {WRITE_CONDITION.wait();}
 				catch (InterruptedException e) {/*Ignore*/}
@@ -217,7 +216,7 @@ public class Server implements Crew{
 			myServiceNum = addActiveReader();
 		}
 		int sharedObjectValue = sharedObject;
-		System.out.println("DEBUG: Reader: myServiceNum = " + myServiceNum + ", sharedObjectValue = " + sharedObjectValue);
+//		System.out.println("DEBUG: Reader: myServiceNum = " + myServiceNum + ", sharedObjectValue = " + sharedObjectValue);
 		//now sleep for opTime
 		try {Thread.sleep(getOpTime(cNum, "reader"));}
 		catch (InterruptedException e) {/*Ignore*/}
@@ -226,12 +225,12 @@ public class Server implements Crew{
 		removeActiveReader();
 		synchronized(WRITE_CONDITION)
 		{
-			System.out.println("DEBUG: Reader: trying to wake up everyone waiting");
+//			System.out.println("DEBUG: Reader: trying to wake up everyone waiting");
 			WRITE_CONDITION.notifyAll();	//wake up everyone and then check for reader/writer conflict again
-			System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
+//			System.out.println("DEBUG: Reader: if writer was sleeping, it should wake up by now!\t Sending values back to client");
 		}
 		
-		System.out.println("DEBUG: ReadData: sending reply packet");		
+//		System.out.println("DEBUG: ReadData: sending reply packet");		
 		return new ReplyPacket(myRequestNum, sharedObjectValue, myServiceNum);
 
 	}
@@ -241,7 +240,7 @@ public class Server implements Crew{
 		synchronized(Server.class)
 		{
 			int howMany = finishedClients.incrementAndGet();
-			System.out.println("Server: DEBUG: print : finishedClients = " + howMany);
+//			System.out.println("Server: DEBUG: print : finishedClients = " + howMany);
 			if(howMany != numAccesses*(numReaders + numWriters))
 				return;
 		}
@@ -268,7 +267,9 @@ public class Server implements Crew{
 			Registry reg = LocateRegistry.getRegistry(rmiPort);
 			reg.unbind("arpit");
 			if(UnicastRemoteObject.unexportObject(this, true))
-				System.out.println("DEBUG: Successfully unexported server object.");			
+			{
+//				System.out.println("DEBUG: Successfully unexported server object.");
+			}
 		}
 		catch(Exception re){/*Ignore*/}
 	}
@@ -291,7 +292,7 @@ public class Server implements Crew{
 		 */
 
 		int myRequestNum = addWaitingWriter();
-			System.out.println("DEBUG: Writer : requestNum = " + myRequestNum);
+//			System.out.println("DEBUG: Writer : requestNum = " + myRequestNum);
 		int myServiceNum = -1;	//to indicate error in case this gets transmitted
 		synchronized(WRITE_CONDITION)
 		{
@@ -310,8 +311,8 @@ public class Server implements Crew{
 			}
 			myServiceNum = removeWaitingWriter();
 			setWriterActive();
-				System.out.println("DEBUG: Writer woke up.. Now Active!");
-				System.out.println("DEBUG: Writer: ServiceNum = " + myServiceNum);
+//				System.out.println("DEBUG: Writer woke up.. Now Active!");
+//				System.out.println("DEBUG: Writer: ServiceNum = " + myServiceNum);
 			sharedObject = newVal;
 			//now sleep for opTime
 			try {Thread.sleep(getOpTime(cNum, "writer"));}
@@ -321,7 +322,7 @@ public class Server implements Crew{
 			
 			setWriterNotActive();
 			WRITE_CONDITION.notifyAll();	//I am done, wake everyone up
-			System.out.println("DEBUG: Writer: Notified All. Now sending values back");
+//			System.out.println("DEBUG: Writer: Notified All. Now sending values back");
 		}
 		return new ReplyPacket(myRequestNum, newVal, myServiceNum);
 	}
