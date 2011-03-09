@@ -130,8 +130,9 @@ public class Server implements Crew{
 			LocateRegistry.createRegistry(rmiPort);
 		}
 		catch (RemoteException e) {
-			System.err.println("DEBUG: Server: Can't create Registry at " + rmiPort + " port.");
-			e.printStackTrace();
+			//System.err.println("DEBUG: Server: Can't create Registry at " + rmiPort + " port.");
+			//e.printStackTrace();
+			//registry already running so just use it
 		}
 		catch (IOException ioex)
 		{
