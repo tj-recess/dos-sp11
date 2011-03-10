@@ -85,9 +85,9 @@ public class start {
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + writerName + " cd " + path + " ; java Client writer " + cNum + " " + numAccesses + " " + aWriter.getSleepTime() + " " + server + " " + rmiPort);
 				allWriterThreads[i*2] = new Thread(new ClientOutputStreamReader(remote, writerName, "input"));
-				allWriterThreads[i*2].start();
+//				allWriterThreads[i*2].start();
 				allWriterThreads[i*2 + 1] = new Thread(new ClientOutputStreamReader(remote, writerName, "error"));
-				allWriterThreads[i*2 + 1].start();
+//				allWriterThreads[i*2 + 1].start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote writer client : " + writerName);
 			}
@@ -106,9 +106,9 @@ public class start {
 			try {
 				Process remote = Runtime.getRuntime().exec("ssh " + readerName + " cd " + path + " ; java Client reader " + cNum + " " + numAccesses + " " + aReader.getSleepTime() + " " + server + " " + rmiPort);
 				allReaderThreads[i*2] = new Thread(new ClientOutputStreamReader(remote, readerName, "input"));
-				allReaderThreads[i*2].start();
+//				allReaderThreads[i*2].start();
 				allReaderThreads[i*2 + 1] = new Thread(new ClientOutputStreamReader(remote, readerName, "error"));
-				allReaderThreads[i*2 + 1].start();
+//				allReaderThreads[i*2 + 1].start();
 			} catch (IOException e) {
 				System.err.println("Can't start remote reader client : " + readerName );
 			}
