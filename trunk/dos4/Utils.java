@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Properties;
-import java.util.Queue;
 import java.util.Random;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 class ClientConfig implements Serializable
 {
@@ -101,7 +99,11 @@ class ConfigReader
 	public ArrayList<ClientConfig> getClients() {
 		return clients;
 	}
-
+	
+	public ClientConfig getClientConfig(int cNum)
+	{
+		return clients.get(cNum);
+	}
 
 	public String getMulticastAddress() {
 		return multicastAddress;
@@ -112,17 +114,4 @@ class ConfigReader
 		return multicastPort;
 	}
 
-}
-
-class Token implements Serializable
-{
-	private static final long serialVersionUID = 3043525584730649838L;
-	int[] tokenVector;
-	Queue<Integer> tokenQueue;
-	
-	public Token(int vectorSize)
-	{
-		tokenVector = new int[vectorSize];
-		tokenQueue = new ConcurrentLinkedQueue<Integer>();
-	}
 }
