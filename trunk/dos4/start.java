@@ -25,9 +25,10 @@ public class start
 			try 
 			{
 				ClientConfig aClient= cr.getClientConfig(i);
+				aClient.print();	//DEBUG
 				Process remote = Runtime.getRuntime().exec("ssh " + aClient.getAddress() + " cd " + path + " ; java Client " + aClient.getClientNum());
-				new Thread(new ClientOutputStreamReader(remote, aClient.getAddress(), "input"));
-				new Thread(new ClientOutputStreamReader(remote, aClient.getAddress(), "error"));
+				new Thread(new ClientOutputStreamReader(remote, aClient.getAddress(), "input")).start();
+				new Thread(new ClientOutputStreamReader(remote, aClient.getAddress(), "error")).start();
 			}
 			catch (IOException e) 
 			{			

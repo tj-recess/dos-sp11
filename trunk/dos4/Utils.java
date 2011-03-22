@@ -42,6 +42,11 @@ class ClientConfig implements Serializable
 	public int getOpTime() {
 		return opTime;
 	}
+	public void print()
+	{
+		System.out.println("\nClient" + getClientNum() + ":\n\tAddress = " + getAddress() + "\n\tPort = " + getPort() + 
+			"\n\tSleepTime = " + getSleepTime() + "\n\tOpTime = " + getOpTime());
+	}
 
 }
 
@@ -72,17 +77,17 @@ class ConfigReader
 		//now read all the attributes in config file
 		multicastAddress = sysProp.getProperty("Multicast.address");
 		multicastPort = Integer.parseInt(sysProp.getProperty("Multicast.port"));
-		numClients = Integer.parseInt("ClientNum");
+		numClients = Integer.parseInt(sysProp.getProperty("ClientNum"));
 		numAccesses = Integer.parseInt(sysProp.getProperty("numberOfRequests"));
 		
 		//setup data structures so that they can be passed to the actual server
 		//setup clients from config file
-		for(int i = 0; i < numClients; i++)
+		for(int i = 1; i <= numClients; i++)
 		{
-			String clientKey = "Client" + (i + 1);
+			String clientKey = "Client" + i;
 			String clientName = sysProp.getProperty(clientKey);	//client's name starts from 1 to n (not 0 to n-1)
 			String clientPort = sysProp.getProperty(clientKey + ".port");
-			clients.add(new ClientConfig(clientName, i+1, Integer.parseInt(clientPort)));// (i+1) is client's number
+			clients.add(new ClientConfig(clientName, i, Integer.parseInt(clientPort)));// i is client's number
 		}
 	}
 
@@ -102,7 +107,7 @@ class ConfigReader
 	
 	public ClientConfig getClientConfig(int cNum)
 	{
-		return clients.get(cNum);
+		return clients.get(cNum-1);
 	}
 
 	public String getMulticastAddress() {
