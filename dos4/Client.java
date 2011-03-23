@@ -20,7 +20,6 @@ public class Client implements Runnable
 	private int[] sequenceVector;	//best known information about other processes
 	private ClientConfig myConfig;	//my own sleepTime, opTime, name, etc.
 	private String multiCastAddress;
-	private AtomicInteger state;	// 0 = multicast, 1 = listener, 2 = unicast
 	private int multiCastPort;
 	private MulticastSocket socket;
 	private Token myToken = null;
@@ -42,7 +41,6 @@ public class Client implements Runnable
 			myToken = new Token(totalClients);
 		else
 			myToken = null;
-		state = new AtomicInteger(0);
 	}
 	
 	public static void main(String[] args)
@@ -57,8 +55,15 @@ public class Client implements Runnable
 
 		//create 3 threads, according to the value of state, automatically threads will acquire  
 		//the role of multicast, listener or unicast
-		for(int i = 0; i < 3; i++)
-			new Thread(aClient).start();
+		Thread[] t = new Thread[3];
+		for (int i = 0; i < t.length; i++)
+			t[i] = new Thread(aClient);
+		t[0].setName("listener");
+		t[1].setName("multicast");
+		t[2].setName("unicast");
+		for (int i = 0; i < t.length; i++)
+			t[i].start();
+		
 	}
 
 	private void setupMulticast()
@@ -76,7 +81,7 @@ public class Client implements Runnable
 	@Override
 	public void run()
 	{
-		if(state.getAndIncrement() == 0)
+		if(Thread.currentThread().getName().equals("multicast"))
 		{
 			//request token through multicast if you don't have token already
 			if(myToken == null)
@@ -103,7 +108,7 @@ public class Client implements Runnable
 				}
 			}
 		}
-		else if(state.getAndIncrement() == 1)
+		else if(Thread.currentThread().getName().equals("listener"))
 		{
 			//listen to others request
 			byte[] buffer = new byte[10000];
@@ -125,14 +130,14 @@ public class Client implements Runnable
 				System.err.println("Unknown object received! **Exception = " + e.getMessage());
 			}			
 		}
-		else if(state.getAndIncrement() == 2)
+		else if(Thread.currentThread().getName().equals("unicast"))
 		{
 			//send and receive token through unicast
 			
 		}
 		else
 		{
-			System.err.println("Failed to maintain \"state\". BAD!");
+			System.err.println("Invalid thread with name = " + Thread.currentThread().getName() + ". BAD!");
 		}
 	}
 }
