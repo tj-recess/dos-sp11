@@ -87,6 +87,8 @@ public class Client implements Runnable
 			if(myToken == null)
 			{
 				try {
+					myToken = new Token(myConfig.getClientNum());
+					myToken.tokenVector = sequenceVector;
 					myToken.tokenVector[myConfig.getClientNum() - 1] = mySequenceNum.incrementAndGet();
 					socket.setTimeToLive(1);
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
