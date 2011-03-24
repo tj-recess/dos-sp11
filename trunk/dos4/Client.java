@@ -23,7 +23,8 @@ public class Client implements Runnable
 	private ClientConfig myConfig;	//my own sleepTime, opTime, name, etc.
 	private String multiCastAddress;
 	private int multiCastPort;
-	private MulticastSocket multiSocket;
+	private MulticastSocket multiSocketReceiver;
+	private MulticastSocket multiSocketSender;
 	private Socket unicastSender;
 	private ServerSocket unicastReceiver;
 	private Token myToken = null;
@@ -31,6 +32,7 @@ public class Client implements Runnable
 	private Object tokenReceived;
 	private boolean allExecuted = false;
 	private ConfigReader cr;
+	private Object tokenLost;
 	
 	public Client(int myID)
 	{
@@ -40,8 +42,10 @@ public class Client implements Runnable
 		multiCastPort = cr.getMulticastPort();
 		numAccesses = cr.getNumAccesses();
 		myConfig = cr.getClientConfig(myID);
-		mySequenceNum = 0;	//should be 0 initially
+		mySequenceNum = 1;	//should be 1 initially
 		csExecuted = new Object();
+		tokenReceived = new Object();
+		tokenLost = new Object();
 		int totalClients = cr.getNumClients();
 		sequenceVector = new int[totalClients];
 		for (int i = 0; i < totalClients; i++)
@@ -79,7 +83,7 @@ public class Client implements Runnable
 	private void setupUnicast()
 	{
 		try {
-			unicastReceiver = new ServerSocket(0,0,InetAddress.getLocalHost());
+			unicastReceiver = new ServerSocket(myConfig.getPort(),0,InetAddress.getByName(myConfig.getAddress()));
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -93,10 +97,15 @@ public class Client implements Runnable
 	private void setupMulticast()
 	{
 		try {
-			multiSocket = new MulticastSocket(multiCastPort);
 			InetAddress group = InetAddress.getByName(multiCastAddress);
-			multiSocket.joinGroup(group);
-			multiSocket.setTimeToLive(1);
+			
+			multiSocketReceiver = new MulticastSocket(multiCastPort);
+			multiSocketReceiver.joinGroup(group);
+			multiSocketReceiver.setTimeToLive(1);
+			
+			multiSocketSender = new MulticastSocket(multiCastPort);
+			multiSocketSender.joinGroup(group);
+			multiSocketSender.setTimeToLive(1);
 		} catch (IOException ioex) {
 			// TODO Auto-generated catch block
 			ioex.printStackTrace();
@@ -108,20 +117,28 @@ public class Client implements Runnable
 	{
 		if(Thread.currentThread().getName().equals("multicast"))
 		{
-			//request token through multicast if you don't have token already
-			int tokenRequested = 0;
-			while(tokenRequested < numAccesses)
+			//request token through multicast if you don't have token already			
+			while(mySequenceNum < numAccesses)
 			{
-				//request a token
+				if(myToken != null)
+				{
+					//wait until someone else takes the token and then request
+					synchronized(tokenLost)
+					{
+						try {tokenLost.wait();}
+						catch (InterruptedException e) {}
+					}
+				}
+				//request a token if you don't have one
 				try {
-					RequestMsg rm = new RequestMsg(myConfig.getClientNum(), ++mySequenceNum);
+					RequestMsg rm = new RequestMsg(myConfig.getClientNum(), mySequenceNum);
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					ObjectOutputStream oos = new ObjectOutputStream(bos);
 					oos.writeObject(rm);
 					byte[] data = bos.toByteArray();
 					DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getByName(multiCastAddress), multiCastPort);
-					multiSocket.send(packet);
-					System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: a request has been sent");
+					multiSocketSender.send(packet);
+//					System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: a multicast request has been sent");
 				}
 				catch (UnknownHostException uhex)
 				{
@@ -133,12 +150,16 @@ public class Client implements Runnable
 					e.printStackTrace();
 				}
 				
+				//just sleep for some random time before reattempting
+				try {Thread.sleep(1000);}
+				catch (InterruptedException e) {/*Ignore*/}
+				
 				//wait until token is received
-				synchronized(csExecuted)
-				{
-					try {csExecuted.wait();}
-					catch (InterruptedException e) {/*Ignore*/}
-				}
+//				synchronized(csExecuted)
+//				{
+//					try {csExecuted.wait();}
+//					catch (InterruptedException e) {/*Ignore*/}
+//				}
 				
 				//once notified request the token again until numAccesses time
 			}
@@ -148,10 +169,11 @@ public class Client implements Runnable
 			while(!allExecuted)
 			{
 				//listen to others' multicast request
-				byte[] buffer = new byte[64];
+				byte[] buffer = new byte[1000];
 				DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 				try {
-					multiSocket.receive(packet);
+					multiSocketReceiver.receive(packet);
+					System.out.println("DEBUG: packet of length = " + packet.getLength() + "received.");
 					ByteArrayInputStream bis = new ByteArrayInputStream(buffer);
 					ObjectInputStream ois = new ObjectInputStream(bis);
 					RequestMsg receivedReq = (RequestMsg)ois.readObject();
@@ -165,11 +187,12 @@ public class Client implements Runnable
 						{
 							tokenReceived.notify();
 						}
-						System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: proper request received");
+//						System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: proper request received");
 					}
 				} catch (IOException e)
 				{
 					System.err.println("Error receiving datagram packet. **Exception = " + e.getMessage());
+					e.printStackTrace();	//TODO - remove the stack trace
 				} catch (ClassNotFoundException e) {
 					System.err.println("Unknown object received! **Exception = " + e.getMessage());
 				}
@@ -178,42 +201,71 @@ public class Client implements Runnable
 		else if(Thread.currentThread().getName().equals("unicast"))
 		{
 			//send and receive token through unicast
-			//wait until listener signals of a token reception
-			synchronized(tokenReceived)
-			{				
-				try {tokenReceived.wait();}
-				catch (InterruptedException e) {/*Ignore*/}
-				
+			while(!allExecuted)
+			{
 				//as token is received, if myToken is not null, 
 				if(myToken != null)
 				{
-					//scan the Sequence Vector and find which process should receive it now
+					//wait until listener signals of a token reception
+					synchronized(tokenReceived)
+					{				
+						try {tokenReceived.wait();}
+						catch (InterruptedException e) {/*Ignore*/}
+					}
+					
+					//scan the Sequence Vector and find which process should receive the token now
+					allExecuted = true;	//everyone is done
 					for(int i = 0; i < sequenceVector.length; i++)
 					{
 						if(sequenceVector[i] == myToken.tokenVector[i] + 1)
 						{
+							if(sequenceVector[i] < numAccesses)
+								allExecuted = false;	//even if one client was found who is not done, set allExecuted = false;
 							//append ith client to queue
-							myToken.tokenQueue.add(i);
+							myToken.tokenQueue.add(i + 1);	//as clients start from 1 to 5							
+							System.out.println("DEBUG: client " + (i+1) + " appended to the end of token queue");
 						}
 					}
+
 					//send token to the first process in queue
 					Integer nextOwnerClient = myToken.tokenQueue.peek();
 					if(nextOwnerClient != null)
 					{
+						System.out.println("DEBUG: client " + nextOwnerClient + " retrieved from the front of token queue");
 						ClientConfig nextOwnerConfig = cr.getClientConfig(nextOwnerClient.intValue()); 
 						try {
+							//wait for sometime so that receiver is initialized 
+							Thread.sleep(1000);	//TODO - find alternative
+							System.out.println("DEBUG: sending token to address: " + nextOwnerConfig.getAddress() + ", and port : " + nextOwnerConfig.getPort());  
 							unicastSender = new Socket(nextOwnerConfig.getAddress(), nextOwnerConfig.getPort());
 							ObjectOutputStream oos = new ObjectOutputStream(unicastSender.getOutputStream());
 							oos.writeObject(myToken);
-							myToken = null;		//make my own taken null after transferring 
-												//to ensure only one client at a time has token
+							//make my own taken null after transferring
+							//to ensure only one client at a time has token
+							myToken = null;
+							//and notify thread performing multicast that token is lost :)
+							synchronized(tokenLost)
+							{
+								tokenLost.notify();
+							}
 						} catch (UnknownHostException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
-						} 
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						finally
+						{
+							if(unicastSender != null)
+							{
+								try {unicastSender.close();}
+								catch (IOException e) {}
+							}
+						}
 					}
 				}
 				else
@@ -221,13 +273,20 @@ public class Client implements Runnable
 					//wait for others to send token
 					try 
 					{
+//						System.out.println("DEBUG: ready to accept tokens from other clients now");
 						Socket myClient = unicastReceiver.accept();	//accept request from some other node trying to handover the token
 						//now receive the token from accepted client
 						ObjectInputStream ois = new ObjectInputStream(myClient.getInputStream());
 						myToken = (Token) ois.readObject();
 						
 						//now execute critical section
-						
+						System.out.println("inside CS... executed");
+						//just incremented the sequence number
+						mySequenceNum++;
+//						synchronized(csExecuted)
+//						{
+//							csExecuted.notify();
+//						}
 						
 						//delete my own value from token queue's head
 						if(myConfig.getClientNum() != myToken.tokenQueue.remove())
@@ -240,11 +299,15 @@ public class Client implements Runnable
 					} catch (ClassNotFoundException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
-					}
-					
+					}					
 				}
 			}
-			
+			if(unicastReceiver != null)
+			{
+				try {
+					unicastReceiver.close();
+				} catch (IOException e) {}
+			}
 		}
 		else
 		{
@@ -262,6 +325,11 @@ class Token implements Serializable
 	public Token(int vectorSize)
 	{
 		tokenVector = new int[vectorSize];
+		//init token vector with all 0s
+		for (int i = 0; i < tokenVector.length; i++)
+		{
+			tokenVector[i] = 0;
+		}
 		tokenQueue = new ConcurrentLinkedQueue<Integer>();
 	}
 }
