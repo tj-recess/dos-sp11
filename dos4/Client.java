@@ -29,7 +29,7 @@ public class Client implements Runnable
 	private ServerSocket unicastReceiver;
 	private Token myToken = null;
 	private Object csExecuted;
-	private Object tokenReceived;
+	private Object tokenWanted;
 	private boolean allExecuted = false;
 	private ConfigReader cr;
 	private Object tokenLost;
@@ -44,7 +44,7 @@ public class Client implements Runnable
 		myConfig = cr.getClientConfig(myID);
 		mySequenceNum = 1;	//should be 1 initially
 		csExecuted = new Object();
-		tokenReceived = new Object();
+		tokenWanted = new Object();
 		tokenLost = new Object();
 		int totalClients = cr.getNumClients();
 		sequenceVector = new int[totalClients];
@@ -123,15 +123,18 @@ public class Client implements Runnable
 		if(Thread.currentThread().getName().equals("multicast"))
 		{
 			//request token through multicast if you don't have token already			
-			while(mySequenceNum <= numAccesses)
+//			while(mySequenceNum <= numAccesses)
+			while(!allExecuted)
 			{
 				if(myToken != null)
 				{
 					//wait until someone else takes the token and then request
 					synchronized(tokenLost)
 					{
+						System.out.println("DEBUG: waiting for someone to take my token...");
 						try {tokenLost.wait();}
 						catch (InterruptedException e) {}
+						System.out.println("DEBUG: someone took my token, I am good to go now...");
 					}
 				}
 				//request a token if you don't have one
@@ -168,6 +171,7 @@ public class Client implements Runnable
 				
 				//once notified request the token again until numAccesses time
 			}
+			System.out.println("DEBUG: multicaster thread exited");
 		}
 		else if(Thread.currentThread().getName().equals("listener"))
 		{
@@ -188,9 +192,9 @@ public class Client implements Runnable
 						sequenceVector[receivedReq.clientID - 1] = Math.max(sequenceVector[receivedReq.clientID - 1], receivedReq.sequenceNum);
 						
 						//notify the Token Dealer thread about the reception of request
-						synchronized(tokenReceived)
+						synchronized(tokenWanted)
 						{
-							tokenReceived.notify();
+							tokenWanted.notify();
 						}
 //						System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: proper request received");
 					}
@@ -202,28 +206,39 @@ public class Client implements Runnable
 					System.err.println("Unknown object received! **Exception = " + e.getMessage());
 				}
 			}
+			System.out.println("DEBUG: listener thread exited");
 		}
 		else if(Thread.currentThread().getName().equals("unicast"))
 		{
 			//send and receive token through unicast
 			while(!allExecuted)
 			{
+				allExecuted = true;
+				//first of all check if everyone is done, if yes, break
+				for(int i = 0; i < sequenceVector.length; i++)
+				{
+					if(sequenceVector[i] < numAccesses)
+						allExecuted = false;
+				}
+				
 				//as token is received, if myToken is not null, 
 				if(myToken != null)
 				{
 					//wait until listener signals of a token reception
-					synchronized(tokenReceived)
-					{				
-						try {tokenReceived.wait();}
+					synchronized(tokenWanted)
+					{
+						System.out.println("DEBUG: waiting for someone to send me a token...");
+						try {tokenWanted.wait();}
 						catch (InterruptedException e) {/*Ignore*/}
+						System.out.println("DEBUG: someone sent me a token. I am good to go now...");
 					}
 					
 					//scan the Sequence Vector and find which process should receive the token now
-					allExecuted = true;	//everyone is done
+//					allExecuted = true;	//everyone is done
 					for(int i = 0; i < sequenceVector.length; i++)
 					{
-						if(sequenceVector[i] < numAccesses)
-							allExecuted = false;	//even if one client was found who is not done, set allExecuted = false;
+//						if(sequenceVector[i] < numAccesses)
+//							allExecuted = false;	//even if one client was found who is not done, set allExecuted = false;
 
 						if(sequenceVector[i] == myToken.tokenVector[i] + 1)
 						{
@@ -316,6 +331,7 @@ public class Client implements Runnable
 					unicastReceiver.close();
 				} catch (IOException e) {}
 			}
+			System.out.println("DEBUG: unicast thread exited");
 		}
 		else
 		{
