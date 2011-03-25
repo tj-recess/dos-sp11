@@ -63,9 +63,12 @@ public class Client implements Runnable
 			System.err.println("Usage : java Client <ID_of_Client>");
 			System.exit(-1);
 		}
+		System.out.println("DEBUG: Client running now...");
 		Client aClient = new Client(Integer.parseInt(args[0]));	//args[0] is cNum (client's ID)
 		aClient.setupMulticast();	//setup multicast address before starting either sending or receiving thread
+//		System.out.println("DEBUG: Multicast all set.");
 		aClient.setupUnicast();
+//		System.out.println("DEBUG: Unicast all set.");
 
 		//create 3 threads, according to the value of state, automatically threads will acquire  
 		//the role of multicast, listener or unicast
@@ -78,12 +81,14 @@ public class Client implements Runnable
 		for (int i = 0; i < t.length; i++)
 			t[i].start();
 		
+		System.out.println("DEBUG: All threads running now.");
 	}
 
 	private void setupUnicast()
 	{
 		try {
 			unicastReceiver = new ServerSocket(myConfig.getPort(),0,InetAddress.getByName(myConfig.getAddress()));
+			System.out.println("DEBUG: Unicast server running on address=" + unicastReceiver.getInetAddress().getHostName() + ", and port=" + unicastReceiver.getLocalPort());
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -118,7 +123,7 @@ public class Client implements Runnable
 		if(Thread.currentThread().getName().equals("multicast"))
 		{
 			//request token through multicast if you don't have token already			
-			while(mySequenceNum < numAccesses)
+			while(mySequenceNum <= numAccesses)
 			{
 				if(myToken != null)
 				{
@@ -173,7 +178,7 @@ public class Client implements Runnable
 				DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 				try {
 					multiSocketReceiver.receive(packet);
-					System.out.println("DEBUG: packet of length = " + packet.getLength() + "received.");
+//					System.out.println("DEBUG: packet of length = " + packet.getLength() + "received.");
 					ByteArrayInputStream bis = new ByteArrayInputStream(buffer);
 					ObjectInputStream ois = new ObjectInputStream(bis);
 					RequestMsg receivedReq = (RequestMsg)ois.readObject();
@@ -217,10 +222,11 @@ public class Client implements Runnable
 					allExecuted = true;	//everyone is done
 					for(int i = 0; i < sequenceVector.length; i++)
 					{
+						if(sequenceVector[i] < numAccesses)
+							allExecuted = false;	//even if one client was found who is not done, set allExecuted = false;
+
 						if(sequenceVector[i] == myToken.tokenVector[i] + 1)
 						{
-							if(sequenceVector[i] < numAccesses)
-								allExecuted = false;	//even if one client was found who is not done, set allExecuted = false;
 							//append ith client to queue
 							myToken.tokenQueue.add(i + 1);	//as clients start from 1 to 5							
 							System.out.println("DEBUG: client " + (i+1) + " appended to the end of token queue");
@@ -232,10 +238,10 @@ public class Client implements Runnable
 					if(nextOwnerClient != null)
 					{
 						System.out.println("DEBUG: client " + nextOwnerClient + " retrieved from the front of token queue");
-						ClientConfig nextOwnerConfig = cr.getClientConfig(nextOwnerClient.intValue()); 
+						ClientConfig nextOwnerConfig = cr.getClientConfig(nextOwnerClient.intValue());
 						try {
 							//wait for sometime so that receiver is initialized 
-							Thread.sleep(1000);	//TODO - find alternative
+							Thread.sleep(3000);	//TODO - find alternative
 							System.out.println("DEBUG: sending token to address: " + nextOwnerConfig.getAddress() + ", and port : " + nextOwnerConfig.getPort());  
 							unicastSender = new Socket(nextOwnerConfig.getAddress(), nextOwnerConfig.getPort());
 							ObjectOutputStream oos = new ObjectOutputStream(unicastSender.getOutputStream());
@@ -267,14 +273,16 @@ public class Client implements Runnable
 							}
 						}
 					}
+					System.out.println("DEBUG: All executed = " + allExecuted);
 				}
 				else
 				{
 					//wait for others to send token
 					try 
 					{
-//						System.out.println("DEBUG: ready to accept tokens from other clients now");
+						System.out.println("DEBUG: ready to accept tokens from other clients now");
 						Socket myClient = unicastReceiver.accept();	//accept request from some other node trying to handover the token
+						System.out.println("DEBUG: accepted a client connection");
 						//now receive the token from accepted client
 						ObjectInputStream ois = new ObjectInputStream(myClient.getInputStream());
 						myToken = (Token) ois.readObject();
