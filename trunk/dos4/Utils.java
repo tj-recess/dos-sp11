@@ -134,6 +134,7 @@ class Formatter
 	{
 		try {
 			fout = new PrintWriter(new FileWriter("request.log", false), true);
+			//1st false is for non-append mode, 2nd true is for auto-flush
 		}
 		catch (IOException e) {
 			System.err.println("File \"request.log\" can't be created, make sure you have access to the direcctory.");
@@ -155,7 +156,7 @@ class Formatter
 	static void print(int clientID, int[] seqVector, Token token)
 	{
 		//get string representation of objects passed
-		
+		System.out.println("DEBUG: client " + clientID + " printed output");
 		//sequenceVector and tokenVector
 		StringBuffer seqVectorString = new StringBuffer();
 		StringBuffer tokenVectorString = new StringBuffer();
@@ -169,12 +170,12 @@ class Formatter
 		
 		//tokenQueue
 		StringBuffer tokenQueueString = new StringBuffer();
-		Integer[] tokenQueueArray = (Integer[])token.tokenQueue.toArray();
+		Object[] tokenQueueArray = token.tokenQueue.toArray();
 		if(tokenQueueArray.length > 0)
 		{
 			for(int i = 0; i < tokenQueueArray.length; i++)
 			{
-				tokenQueueString.append(tokenQueueArray[i] + ",");
+				tokenQueueString.append((Integer)tokenQueueArray[i] + ",");
 			}		
 			tokenQueueString.deleteCharAt(tokenQueueString.length() - 1);//removing the last " " (space)
 		}
@@ -183,6 +184,6 @@ class Formatter
 			tokenQueueString.append("NULL");
 		}
 		
-		System.out.format(outputFormat, clientID, seqVectorString.toString(), tokenVectorString.toString(), tokenQueueString.toString());
+		fout.format(outputFormat, clientID, seqVectorString.toString(), tokenVectorString.toString(), tokenQueueString.toString());
 	}
 }
