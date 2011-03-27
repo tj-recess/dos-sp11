@@ -1,6 +1,9 @@
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -119,4 +122,67 @@ class ConfigReader
 		return multicastPort;
 	}
 
+}
+
+class Formatter
+{
+	static PrintWriter fout;
+	static ConfigReader cr = new ConfigReader("system.properties");
+	static String outputFormat = "%9s\t%15s\t%12s\t%11s\n";
+	
+	static
+	{
+		try {
+			fout = new PrintWriter(new FileWriter("request.log", false), true);
+		}
+		catch (IOException e) {
+			System.err.println("File \"request.log\" can't be created, make sure you have access to the direcctory.");
+			e.printStackTrace();	//DEBUG
+		}
+		
+		writeHeader();
+	}
+	
+	private static void writeHeader() 
+	{
+		fout.println("GROUP MEMBER: " + cr.getNumClients());
+		fout.println("# of each Member'sRequst : " + cr.getNumAccesses());
+		fout.println();
+		fout.format(outputFormat, "Member ID", "Sequence Vector", "Token Vector", "Token Queue");
+		fout.format(outputFormat, "=========", "===============", "============", "===========");
+	}
+	
+	static void print(int clientID, int[] seqVector, Token token)
+	{
+		//get string representation of objects passed
+		
+		//sequenceVector and tokenVector
+		StringBuffer seqVectorString = new StringBuffer();
+		StringBuffer tokenVectorString = new StringBuffer();
+		for(int i = 0; i < seqVector.length; i++)
+		{
+			seqVectorString.append(seqVector[i] + " ");
+			tokenVectorString.append(token.tokenVector[i] + " ");
+		}
+		seqVectorString.deleteCharAt(seqVectorString.length() - 1);	//removing the last " " (space)
+		tokenVectorString.deleteCharAt(tokenVectorString.length() - 1);//removing the last " " (space)
+		
+		//tokenQueue
+		StringBuffer tokenQueueString = new StringBuffer();
+		Integer[] tokenQueueArray = (Integer[])token.tokenQueue.toArray();
+		if(tokenQueueArray.length > 0)
+		{
+			for(int i = 0; i < tokenQueueArray.length; i++)
+			{
+				tokenQueueString.append(tokenQueueArray[i] + ",");
+			}		
+			tokenQueueString.deleteCharAt(tokenQueueString.length() - 1);//removing the last " " (space)
+		}
+		else
+		{
+			tokenQueueString.append("NULL");
+		}
+		
+		System.out.format(outputFormat, clientID, seqVectorString.toString(), tokenVectorString.toString(), tokenQueueString.toString());
+	}
 }

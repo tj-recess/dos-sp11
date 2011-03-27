@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Client implements Runnable
 {
-	private int mySequenceNum;	//number of times process has requested critical section
+	private AtomicInteger mySequenceNum;	//number of times process has requested critical section
 	private int numAccesses;
 	private int[] sequenceVector;	//best known information about other processes
 	private ClientConfig myConfig;	//my own sleepTime, opTime, name, etc.
@@ -42,7 +42,7 @@ public class Client implements Runnable
 		multiCastPort = cr.getMulticastPort();
 		numAccesses = cr.getNumAccesses();
 		myConfig = cr.getClientConfig(myID);
-		mySequenceNum = 1;	//should be 1 initially
+		mySequenceNum = new AtomicInteger(1);	//should be 1 initially
 		csExecuted = new Object();
 		tokenWanted = new Object();
 		tokenLost = new Object();
@@ -139,7 +139,7 @@ public class Client implements Runnable
 				}
 				//request a token if you don't have one
 				try {
-					RequestMsg rm = new RequestMsg(myConfig.getClientNum(), mySequenceNum);
+					RequestMsg rm = new RequestMsg(myConfig.getClientNum(), mySequenceNum.get());
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					ObjectOutputStream oos = new ObjectOutputStream(bos);
 					oos.writeObject(rm);
@@ -224,105 +224,11 @@ public class Client implements Runnable
 				//as token is received, if myToken is not null, 
 				if(myToken != null)
 				{
-					//wait until listener signals of a token reception
-					synchronized(tokenWanted)
-					{
-						System.out.println("DEBUG: waiting for someone to send me a token...");
-						try {tokenWanted.wait();}
-						catch (InterruptedException e) {/*Ignore*/}
-						System.out.println("DEBUG: someone sent me a token. I am good to go now...");
-					}
-					
-					//scan the Sequence Vector and find which process should receive the token now
-//					allExecuted = true;	//everyone is done
-					for(int i = 0; i < sequenceVector.length; i++)
-					{
-//						if(sequenceVector[i] < numAccesses)
-//							allExecuted = false;	//even if one client was found who is not done, set allExecuted = false;
-
-						if(sequenceVector[i] == myToken.tokenVector[i] + 1)
-						{
-							//append ith client to queue
-							myToken.tokenQueue.add(i + 1);	//as clients start from 1 to 5							
-							System.out.println("DEBUG: client " + (i+1) + " appended to the end of token queue");
-						}
-					}
-
-					//send token to the first process in queue
-					Integer nextOwnerClient = myToken.tokenQueue.peek();
-					if(nextOwnerClient != null)
-					{
-						System.out.println("DEBUG: client " + nextOwnerClient + " retrieved from the front of token queue");
-						ClientConfig nextOwnerConfig = cr.getClientConfig(nextOwnerClient.intValue());
-						try {
-							//wait for sometime so that receiver is initialized 
-							Thread.sleep(3000);	//TODO - find alternative
-							System.out.println("DEBUG: sending token to address: " + nextOwnerConfig.getAddress() + ", and port : " + nextOwnerConfig.getPort());  
-							unicastSender = new Socket(nextOwnerConfig.getAddress(), nextOwnerConfig.getPort());
-							ObjectOutputStream oos = new ObjectOutputStream(unicastSender.getOutputStream());
-							oos.writeObject(myToken);
-							//make my own taken null after transferring
-							//to ensure only one client at a time has token
-							myToken = null;
-							//and notify thread performing multicast that token is lost :)
-							synchronized(tokenLost)
-							{
-								tokenLost.notify();
-							}
-						} catch (UnknownHostException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						finally
-						{
-							if(unicastSender != null)
-							{
-								try {unicastSender.close();}
-								catch (IOException e) {}
-							}
-						}
-					}
-					System.out.println("DEBUG: All executed = " + allExecuted);
+					sendToken();
 				}
 				else
 				{
-					//wait for others to send token
-					try 
-					{
-						System.out.println("DEBUG: ready to accept tokens from other clients now");
-						Socket myClient = unicastReceiver.accept();	//accept request from some other node trying to handover the token
-						System.out.println("DEBUG: accepted a client connection");
-						//now receive the token from accepted client
-						ObjectInputStream ois = new ObjectInputStream(myClient.getInputStream());
-						myToken = (Token) ois.readObject();
-						
-						//now execute critical section
-						System.out.println("inside CS... executed");
-						//just incremented the sequence number
-						mySequenceNum++;
-//						synchronized(csExecuted)
-//						{
-//							csExecuted.notify();
-//						}
-						
-						//delete my own value from token queue's head
-						if(myConfig.getClientNum() != myToken.tokenQueue.remove())
-						{
-							System.err.println("Token sent to wrong client. BAD!");
-						}
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (ClassNotFoundException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}					
+					receiveToken();					
 				}
 			}
 			if(unicastReceiver != null)
@@ -337,6 +243,110 @@ public class Client implements Runnable
 		{
 			System.err.println("Invalid thread with name = " + Thread.currentThread().getName() + ". BAD!");
 		}
+	}
+
+	private void receiveToken() 
+	{
+		//wait for others to send token
+		try 
+		{
+			System.out.println("DEBUG: ready to accept tokens from other clients now");
+			Socket myClient = unicastReceiver.accept();	//accept request from some other node trying to handover the token
+			System.out.println("DEBUG: accepted a client connection");
+			//now receive the token from accepted client
+			ObjectInputStream ois = new ObjectInputStream(myClient.getInputStream());
+			myToken = (Token) ois.readObject();
+			
+			//now execute critical section, i.e. write output to file
+			Formatter.print(myConfig.getClientNum(), sequenceVector, myToken);
+			//now sleep for the time required to complete the operation
+			try {Thread.sleep(myConfig.getOpTime());}
+			catch (InterruptedException e) {/*Ignore*/}
+			System.out.println("DEBUG: ***CS EXECUTED***");
+			//just increment the sequence number
+			mySequenceNum.incrementAndGet();
+			
+			//delete my own value from token queue's head
+			if(myConfig.getClientNum() != myToken.tokenQueue.remove())
+			{
+				System.err.println("Token sent to wrong client. BAD!");
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void sendToken()
+	{
+		//wait until listener signals of a token reception
+		synchronized(tokenWanted)
+		{
+			System.out.println("DEBUG: waiting for someone to send me a token...");
+			try {tokenWanted.wait();}
+			catch (InterruptedException e) {/*Ignore*/}
+			System.out.println("DEBUG: someone sent me a token. I am good to go now...");
+		}
+		
+		//scan the Sequence Vector and find which process should receive the token now
+//		allExecuted = true;	//everyone is done
+		for(int i = 0; i < sequenceVector.length; i++)
+		{
+//			if(sequenceVector[i] < numAccesses)
+//				allExecuted = false;	//even if one client was found who is not done, set allExecuted = false;
+
+			if(sequenceVector[i] == myToken.tokenVector[i] + 1)
+			{
+				//append ith client to queue
+				myToken.tokenQueue.add(i + 1);	//as clients start from 1 to 5							
+				System.out.println("DEBUG: client " + (i+1) + " appended to the end of token queue");
+			}
+		}
+
+		//send token to the first process in queue
+		Integer nextOwnerClient = myToken.tokenQueue.peek();
+		if(nextOwnerClient != null)
+		{
+			System.out.println("DEBUG: client " + nextOwnerClient + " retrieved from the front of token queue");
+			ClientConfig nextOwnerConfig = cr.getClientConfig(nextOwnerClient.intValue());
+			try {
+				//wait for sometime so that receiver is initialized 
+				Thread.sleep(3000);	//TODO - find alternative
+				System.out.println("DEBUG: sending token to address: " + nextOwnerConfig.getAddress() + ", and port : " + nextOwnerConfig.getPort());  
+				unicastSender = new Socket(nextOwnerConfig.getAddress(), nextOwnerConfig.getPort());
+				ObjectOutputStream oos = new ObjectOutputStream(unicastSender.getOutputStream());
+				oos.writeObject(myToken);
+				//make my own taken null after transferring
+				//to ensure only one client at a time has token
+				myToken = null;
+				//and notify thread performing multicast that token is lost :)
+				synchronized(tokenLost)
+				{
+					tokenLost.notify();
+				}
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			finally
+			{
+				if(unicastSender != null)
+				{
+					try {unicastSender.close();}
+					catch (IOException e) {}
+				}
+			}
+		}
+		System.out.println("DEBUG: All executed = " + allExecuted);
 	}
 }
 
