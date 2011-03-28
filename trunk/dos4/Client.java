@@ -42,7 +42,7 @@ public class Client implements Runnable
 		multiCastPort = cr.getMulticastPort();
 		numAccesses = cr.getNumAccesses();
 		myConfig = cr.getClientConfig(myID);
-		mySequenceNum = new AtomicInteger(1);	//should be 1 initially
+		mySequenceNum = new AtomicInteger(0);	//should be 0 initially
 		csExecuted = new Object();
 		tokenWanted = new Object();
 		tokenLost = new Object();
@@ -122,9 +122,9 @@ public class Client implements Runnable
 	{
 		if(Thread.currentThread().getName().equals("multicast"))
 		{
-			//request token through multicast if you don't have token already			
-//			while(mySequenceNum <= numAccesses)
-			while(!allExecuted)
+			//request token through multicast if you don't have one already			
+			while(mySequenceNum.get() < numAccesses)
+//			while(!allExecuted)
 			{
 				if(myToken != null)
 				{
@@ -134,11 +134,12 @@ public class Client implements Runnable
 						System.out.println("DEBUG: waiting for someone to take my token...");
 						try {tokenLost.wait();}
 						catch (InterruptedException e) {}
-						System.out.println("DEBUG: someone took my token, I am good to go now...");
+//						System.out.println("DEBUG: someone took my token, I am good to go now...");
 					}
 				}
 				//request a token if you don't have one
-				try {
+				try 
+				{
 					RequestMsg rm = new RequestMsg(myConfig.getClientNum(), mySequenceNum.get());
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					ObjectOutputStream oos = new ObjectOutputStream(bos);
@@ -159,7 +160,7 @@ public class Client implements Runnable
 				}
 				
 				//just sleep for some random time before reattempting
-				try {Thread.sleep(1000);}
+				try {Thread.sleep(myConfig.getSleepTime());}
 				catch (InterruptedException e) {/*Ignore*/}
 				
 				//wait until token is received
@@ -176,6 +177,8 @@ public class Client implements Runnable
 		else if(Thread.currentThread().getName().equals("listener"))
 		{
 			while(!allExecuted)
+			//listen until either I have a token or I am still looking for token from someone 
+//			while(myToken != null || mySequenceNum.get() < numAccesses)
 			{
 				//listen to others' multicast request
 				byte[] buffer = new byte[1000];
@@ -203,7 +206,7 @@ public class Client implements Runnable
 					System.err.println("Error receiving datagram packet. **Exception = " + e.getMessage());
 					e.printStackTrace();	//TODO - remove the stack trace
 				} catch (ClassNotFoundException e) {
-					System.err.println("Unknown object received! **Exception = " + e.getMessage());
+					System.err.println("Unknown multicast request received! **Exception = " + e.getMessage());
 				}
 			}
 			System.out.println("DEBUG: listener thread exited");
@@ -212,14 +215,15 @@ public class Client implements Runnable
 		{
 			//send and receive token through unicast
 			while(!allExecuted)
+//			while(myToken != null || mySequenceNum.get() < numAccesses)
 			{
-				allExecuted = true;
-				//first of all check if everyone is done, if yes, break
-				for(int i = 0; i < sequenceVector.length; i++)
-				{
-					if(sequenceVector[i] < numAccesses)
-						allExecuted = false;
-				}
+//				allExecuted = true;
+//				//first of all check if everyone is done, if yes, break
+//				for(int i = 0; i < sequenceVector.length; i++)
+//				{
+//					if(sequenceVector[i] < numAccesses)
+//						allExecuted = false;
+//				}
 				
 				//as token is received, if myToken is not null, 
 				if(myToken != null)
@@ -271,6 +275,15 @@ public class Client implements Runnable
 			{
 				System.err.println("Token sent to wrong client. BAD!");
 			}
+			//check if all the clients are done, if yes -> we can exit, 
+			//otherwise wait until someone requests the token
+			for(int i = 0 ; i < myToken.tokenVector.length; i++)
+			{
+				if(myToken.tokenVector[i] != numAccesses)
+				{
+					allExecuted = false;
+				}
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -285,10 +298,10 @@ public class Client implements Runnable
 		//wait until listener signals of a token reception
 		synchronized(tokenWanted)
 		{
-			System.out.println("DEBUG: waiting for someone to send me a token...");
+			System.out.println("DEBUG: waiting for someone to request a token...");
 			try {tokenWanted.wait();}
 			catch (InterruptedException e) {/*Ignore*/}
-			System.out.println("DEBUG: someone sent me a token. I am good to go now...");
+			System.out.println("DEBUG: someone reqeusted a token. I am good to go now...");
 		}
 		
 		//scan the Sequence Vector and find which process should receive the token now
@@ -314,7 +327,7 @@ public class Client implements Runnable
 			ClientConfig nextOwnerConfig = cr.getClientConfig(nextOwnerClient.intValue());
 			try {
 				//wait for sometime so that receiver is initialized 
-				Thread.sleep(3000);	//TODO - find alternative
+				Thread.sleep(500);	//TODO - find alternative
 				System.out.println("DEBUG: sending token to address: " + nextOwnerConfig.getAddress() + ", and port : " + nextOwnerConfig.getPort());  
 				unicastSender = new Socket(nextOwnerConfig.getAddress(), nextOwnerConfig.getPort());
 				ObjectOutputStream oos = new ObjectOutputStream(unicastSender.getOutputStream());
