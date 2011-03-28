@@ -13,7 +13,7 @@ import java.net.UnknownHostException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import java.io.InterruptedIOException;
 
 public class Client implements Runnable
 {
@@ -33,6 +33,7 @@ public class Client implements Runnable
 	private boolean allExecuted = false;
 	private ConfigReader cr;
 	private Object tokenLost;
+	private Thread multicast;
 	
 	public Client(int myID)
 	{
@@ -42,7 +43,7 @@ public class Client implements Runnable
 		multiCastPort = cr.getMulticastPort();
 		numAccesses = cr.getNumAccesses();
 		myConfig = cr.getClientConfig(myID);
-		mySequenceNum = new AtomicInteger(0);	//should be 0 initially
+		mySequenceNum = new AtomicInteger(1);	//should be 0 initially
 		csExecuted = new Object();
 		tokenWanted = new Object();
 		tokenLost = new Object();
@@ -78,6 +79,7 @@ public class Client implements Runnable
 		t[0].setName("listener");
 		t[1].setName("multicast");
 		t[2].setName("unicast");
+		aClient.multicast = t[1];
 		for (int i = 0; i < t.length; i++)
 			t[i].start();
 		
@@ -123,7 +125,7 @@ public class Client implements Runnable
 		if(Thread.currentThread().getName().equals("multicast"))
 		{
 			//request token through multicast if you don't have one already			
-			while(mySequenceNum.get() < numAccesses)
+			while(mySequenceNum.get() <= numAccesses)
 //			while(!allExecuted)
 			{
 				if(myToken != null)
@@ -184,6 +186,7 @@ public class Client implements Runnable
 				byte[] buffer = new byte[1000];
 				DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 				try {
+					multiSocketReceiver.setSoTimeout(500);	//check every 1/2 second if we are done when no requests are being received
 					multiSocketReceiver.receive(packet);
 //					System.out.println("DEBUG: packet of length = " + packet.getLength() + "received.");
 					ByteArrayInputStream bis = new ByteArrayInputStream(buffer);
@@ -192,16 +195,23 @@ public class Client implements Runnable
 					if(receivedReq.myIdentifier.equals("arpit"));
 					{
 						//update the sequence vector
-						sequenceVector[receivedReq.clientID - 1] = Math.max(sequenceVector[receivedReq.clientID - 1], receivedReq.sequenceNum);
-						
+						synchronized(sequenceVector)
+						{
+							sequenceVector[receivedReq.clientID - 1] = Math.max(sequenceVector[receivedReq.clientID - 1], receivedReq.sequenceNum);
+						}
+						System.out.println("Received token request from " + cr.getClientConfig(receivedReq.clientID).getAddress());
 						//notify the Token Dealer thread about the reception of request
 						synchronized(tokenWanted)
 						{
 							tokenWanted.notify();
 						}
-//						System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: proper request received");
+						System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: proper request received");
 					}
-				} catch (IOException e)
+				} 
+				catch(InterruptedIOException interruptedEx)
+				{//ignore
+				}
+				catch (IOException e)
 				{
 					System.err.println("Error receiving datagram packet. **Exception = " + e.getMessage());
 					e.printStackTrace();	//TODO - remove the stack trace
@@ -224,7 +234,7 @@ public class Client implements Runnable
 //					if(sequenceVector[i] < numAccesses)
 //						allExecuted = false;
 //				}
-				
+
 				//as token is received, if myToken is not null, 
 				if(myToken != null)
 				{
@@ -234,6 +244,32 @@ public class Client implements Runnable
 				{
 					receiveToken();					
 				}
+
+			//check if all the clients are done, if yes -> we can exit, 
+			//otherwise wait until someone requests the token
+			boolean iamdone = mySequenceNum.get() > numAccesses;
+			if(iamdone)
+			{
+				if(myToken != null)
+				{
+					allExecuted = true;
+					for(int i = 0 ; i < myToken.tokenVector.length; i++)
+					{
+						if(myToken.tokenVector[i] != numAccesses)
+						{
+							allExecuted = false;
+						}
+					}
+				}
+				else	//i am done and my token is also null then no need to wait for anyone
+					allExecuted = true;
+			}
+			else
+				allExecuted = false;
+			//check if I am done if yes, no need to continue
+			System.out.println("DEBUG: All executed = " + allExecuted);
+			if(allExecuted)
+				multicast.interrupt();
 			}
 			if(unicastReceiver != null)
 			{
@@ -261,29 +297,23 @@ public class Client implements Runnable
 			ObjectInputStream ois = new ObjectInputStream(myClient.getInputStream());
 			myToken = (Token) ois.readObject();
 			
-			//now execute critical section, i.e. write output to file
-			Formatter.print(myConfig.getClientNum(), sequenceVector, myToken);
-			//now sleep for the time required to complete the operation
-			try {Thread.sleep(myConfig.getOpTime());}
-			catch (InterruptedException e) {/*Ignore*/}
-			System.out.println("DEBUG: ***CS EXECUTED***");
-			//just increment the sequence number
-			mySequenceNum.incrementAndGet();
-			
 			//delete my own value from token queue's head
 			if(myConfig.getClientNum() != myToken.tokenQueue.remove())
 			{
 				System.err.println("Token sent to wrong client. BAD!");
 			}
-			//check if all the clients are done, if yes -> we can exit, 
-			//otherwise wait until someone requests the token
-			for(int i = 0 ; i < myToken.tokenVector.length; i++)
-			{
-				if(myToken.tokenVector[i] != numAccesses)
-				{
-					allExecuted = false;
-				}
-			}
+			
+			//update the token vector to indicate that I have executed my CS
+			myToken.tokenVector[myConfig.getClientNum() - 1] = mySequenceNum.get();
+			
+			//now sleep for the time required to complete the operation
+			try {Thread.sleep(myConfig.getOpTime());}
+			catch (InterruptedException e) {/*Ignore*/}
+			System.out.println("DEBUG: ***CS EXECUTED***");
+
+			//just increment the sequence number
+			mySequenceNum.incrementAndGet();
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -295,30 +325,35 @@ public class Client implements Runnable
 
 	private void sendToken()
 	{
-		//wait until listener signals of a token reception
-		synchronized(tokenWanted)
-		{
-			System.out.println("DEBUG: waiting for someone to request a token...");
-			try {tokenWanted.wait();}
-			catch (InterruptedException e) {/*Ignore*/}
-			System.out.println("DEBUG: someone reqeusted a token. I am good to go now...");
-		}
-		
-		//scan the Sequence Vector and find which process should receive the token now
-//		allExecuted = true;	//everyone is done
-		for(int i = 0; i < sequenceVector.length; i++)
-		{
-//			if(sequenceVector[i] < numAccesses)
-//				allExecuted = false;	//even if one client was found who is not done, set allExecuted = false;
-
-			if(sequenceVector[i] == myToken.tokenVector[i] + 1)
+		if(myToken.tokenQueue.isEmpty())
+		{	//if queue is empty, (and of course everyone is not done that's why we are here) then
+			//wait until listener signals of a token reception
+			synchronized(tokenWanted)
 			{
-				//append ith client to queue
-				myToken.tokenQueue.add(i + 1);	//as clients start from 1 to 5							
-				System.out.println("DEBUG: client " + (i+1) + " appended to the end of token queue");
+				System.out.println("DEBUG: waiting for someone to request a token...");
+				try {tokenWanted.wait();}
+				catch (InterruptedException e) {/*Ignore*/}
+				//System.out.println("DEBUG: someone reqeusted a token. I am good to go now...");
 			}
 		}
 
+			
+		System.out.println("DEBUG: scan the Sequence Vector and find which process should receive the token now");
+		synchronized(sequenceVector)
+		{
+			for(int i = 0; i < sequenceVector.length; i++)
+			{
+				if(sequenceVector[i] >= myToken.tokenVector[i] + 1)
+				{
+					//append ith client to queue
+					myToken.tokenQueue.add(i + 1);	//as clients start from 1 to 5							
+					//System.out.println("DEBUG: client " + (i+1) + " appended to the end of token queue");
+				}
+			}
+			//now write output to file
+			Formatter.print(myConfig.getClientNum(), sequenceVector, myToken);
+		}
+		
 		//send token to the first process in queue
 		Integer nextOwnerClient = myToken.tokenQueue.peek();
 		if(nextOwnerClient != null)
@@ -359,7 +394,6 @@ public class Client implements Runnable
 				}
 			}
 		}
-		System.out.println("DEBUG: All executed = " + allExecuted);
 	}
 }
 

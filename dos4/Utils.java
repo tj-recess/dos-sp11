@@ -132,7 +132,7 @@ class Formatter
 	static
 	{
 		try {
-			fout = new PrintWriter(new FileWriter("request.log", false), true);
+			fout = new PrintWriter(new FileWriter("request.log", true), true);
 			//1st false is for non-append mode, 2nd true is for auto-flush
 		}
 		catch (IOException e) {
