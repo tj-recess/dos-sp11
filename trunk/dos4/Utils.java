@@ -132,6 +132,8 @@ class Formatter
 	static
 	{
 		try {
+			FileWriter fwTemp = new FileWriter("request.log", false);	//just to erase the content of already existing file;
+			fwTemp.close();
 			fout = new PrintWriter(new FileWriter("request.log", true), true);
 			//1st false is for non-append mode, 2nd true is for auto-flush
 		}
