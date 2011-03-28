@@ -10,7 +10,6 @@ import java.net.MulticastSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.io.InterruptedIOException;
@@ -28,7 +27,6 @@ public class Client implements Runnable
 	private Socket unicastSender;
 	private ServerSocket unicastReceiver;
 	private Token myToken = null;
-	private Object csExecuted;
 	private Object tokenWanted;
 	private boolean allExecuted = false;
 	private ConfigReader cr;
@@ -44,7 +42,6 @@ public class Client implements Runnable
 		numAccesses = cr.getNumAccesses();
 		myConfig = cr.getClientConfig(myID);
 		mySequenceNum = new AtomicInteger(1);	//should be 0 initially
-		csExecuted = new Object();
 		tokenWanted = new Object();
 		tokenLost = new Object();
 		int totalClients = cr.getNumClients();
