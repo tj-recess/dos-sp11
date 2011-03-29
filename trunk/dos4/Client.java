@@ -28,7 +28,8 @@ public class Client implements Runnable
 	private ServerSocket unicastReceiver;
 	private Token myToken = null;
 	private Object tokenWanted;
-	private boolean allExecuted = false;
+	private volatile boolean allExecuted = false;
+	private boolean iamdone = false;
 	private ConfigReader cr;
 	private Object tokenLost;
 	private Thread multicast;
@@ -82,6 +83,10 @@ public class Client implements Runnable
 		
 		System.out.println("DEBUG: All threads running now.");
 	}
+	private boolean iAmDone()
+	{
+		return mySequenceNum.get() > numAccesses;
+	}
 
 	private void setupUnicast()
 	{
@@ -122,7 +127,7 @@ public class Client implements Runnable
 		if(Thread.currentThread().getName().equals("multicast"))
 		{
 			//request token through multicast if you don't have one already			
-			while(mySequenceNum.get() <= numAccesses)
+			while(!iAmDone())
 //			while(!allExecuted)
 			{
 				if(myToken != null)
@@ -136,28 +141,32 @@ public class Client implements Runnable
 //						System.out.println("DEBUG: someone took my token, I am good to go now...");
 					}
 				}
-				//request a token if you don't have one
-				try 
+				//request a token if you don't have one and still have the request left
+				if(!iAmDone())
 				{
-					RequestMsg rm = new RequestMsg(myConfig.getClientNum(), mySequenceNum.get());
-					ByteArrayOutputStream bos = new ByteArrayOutputStream();
-					ObjectOutputStream oos = new ObjectOutputStream(bos);
-					oos.writeObject(rm);
-					byte[] data = bos.toByteArray();
-					DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getByName(multiCastAddress), multiCastPort);
-					multiSocketSender.send(packet);
-//					System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: a multicast request has been sent");
+					try 
+					{
+						RequestMsg rm = new RequestMsg(myConfig.getClientNum(), mySequenceNum.get());
+						ByteArrayOutputStream bos = new ByteArrayOutputStream();
+						ObjectOutputStream oos = new ObjectOutputStream(bos);
+						oos.writeObject(rm);
+						byte[] data = bos.toByteArray();
+						DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getByName(multiCastAddress), multiCastPort);
+						multiSocketSender.send(packet);
+						System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: a multicast request has been sent");
+					}
+					catch (UnknownHostException uhex)
+					{
+						System.err.println("No host with address " + multiCastAddress + ". **Exception : " + uhex.getMessage());
+					}
+					catch (IOException e) 
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
-				catch (UnknownHostException uhex)
-				{
-					System.err.println("No host with address " + multiCastAddress + ". **Exception : " + uhex.getMessage());
-				}
-				catch (IOException e) 
-				{
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
+				else
+					break;
 				//just sleep for some random time before reattempting
 				try {Thread.sleep(myConfig.getSleepTime());}
 				catch (InterruptedException e) {/*Ignore*/}
@@ -239,13 +248,13 @@ public class Client implements Runnable
 				}
 				else
 				{
-					receiveToken();					
+					receiveToken();	
 				}
 
 			//check if all the clients are done, if yes -> we can exit, 
 			//otherwise wait until someone requests the token
-			boolean iamdone = mySequenceNum.get() > numAccesses;
-			if(iamdone)
+			
+			if(iAmDone())
 			{
 				if(myToken != null)
 				{
@@ -255,14 +264,21 @@ public class Client implements Runnable
 						if(myToken.tokenVector[i] != numAccesses)
 						{
 							allExecuted = false;
+							break;
 						}
 					}
+					//control here means all executed is true, so write my output and exit
+					if(allExecuted)
+						Formatter.print(myConfig.getClientNum(), sequenceVector, myToken);
 				}
 				else	//i am done and my token is also null then no need to wait for anyone
 					allExecuted = true;
 			}
 			else
+			{
 				allExecuted = false;
+				multicast.interrupt();
+			}
 			//check if I am done if yes, no need to continue
 			System.out.println("DEBUG: All executed = " + allExecuted);
 			if(allExecuted)
@@ -340,13 +356,14 @@ public class Client implements Runnable
 		{
 			for(int i = 0; i < sequenceVector.length; i++)
 			{
-				if(sequenceVector[i] >= myToken.tokenVector[i] + 1)
+				if(sequenceVector[i] >= myToken.tokenVector[i] + 1 && !myToken.tokenQueue.contains(i+1))
 				{
 					//append ith client to queue
 					myToken.tokenQueue.add(i + 1);	//as clients start from 1 to 5							
 					//System.out.println("DEBUG: client " + (i+1) + " appended to the end of token queue");
 				}
 			}
+			System.out.println(myConfig.getClientNum() + " must have written to file");
 			//now write output to file
 			Formatter.print(myConfig.getClientNum(), sequenceVector, myToken);
 		}

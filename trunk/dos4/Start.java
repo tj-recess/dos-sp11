@@ -18,6 +18,8 @@ public class Start
 
 	private void initClients()
 	{
+		//before doing anything, write header for request.log file
+		Formatter.writeHeader();
 		int numClients = cr.getNumClients();
 		String path = System.getProperty("user.dir"); // get current directory of the user
 		for(int i = 1; i <= numClients; i++)
@@ -27,7 +29,7 @@ public class Start
 				ClientConfig aClient= cr.getClientConfig(i);
 				aClient.print();	//DEBUG
 				Process remote = Runtime.getRuntime().exec("ssh " + aClient.getAddress() + " cd " + path + " ; java Client " + aClient.getClientNum());
-				new Thread(new ClientOutputStreamReader(remote, aClient.getAddress(), "input")).start();
+				//new Thread(new ClientOutputStreamReader(remote, aClient.getAddress(), "input")).start();
 				new Thread(new ClientOutputStreamReader(remote, aClient.getAddress(), "error")).start();
 			}
 			catch (IOException e) 
