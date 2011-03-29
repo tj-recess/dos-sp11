@@ -125,16 +125,16 @@ class ConfigReader
 
 class Formatter
 {
-	static PrintWriter fout;
-	static ConfigReader cr = new ConfigReader("system.properties");
-	static String outputFormat = "%9s\t%15s\t%12s\t%11s\n";
+	private	static PrintWriter fout;
+	private	static ConfigReader cr = new ConfigReader("system.properties");
+	private	static String outputFormat = "%9s\t%15s\t%12s\t%11s\n";
 	
 	static
 	{
 		try {
-			FileWriter fwTemp = new FileWriter("request.log", false);	//just to erase the content of already existing file;
-			fwTemp.close();
-			fout = new PrintWriter(new FileWriter("request.log", true), true);
+//			FileWriter fwTemp = new FileWriter("request.log", false);	//just to erase the content of already existing file;
+//			fwTemp.close();
+			 fout = new PrintWriter(new FileWriter("request.log", false), true);
 			//1st false is for non-append mode, 2nd true is for auto-flush
 		}
 		catch (IOException e) {
@@ -143,6 +143,7 @@ class Formatter
 		}
 		
 		writeHeader();
+		fout.close();
 	}
 	
 	private static void writeHeader() 
@@ -154,10 +155,20 @@ class Formatter
 		fout.format(outputFormat, "=========", "===============", "============", "===========");
 	}
 	
-	static void print(int clientID, int[] seqVector, Token token)
+	public static void print(int clientID, int[] seqVector, Token token)
 	{
-		//get string representation of objects passed
+		try
+		{
+			fout = new PrintWriter(new FileWriter("request.log", true), true);
+		}
+		catch (IOException e) {
+			System.err.println("File \"request.log\" can't be created, make sure you have access to the direcctory.");
+			e.printStackTrace();	//DEBUG
+		}
+
 		System.out.println("DEBUG: client " + clientID + " printed output");
+		fout.println("DEBUG: client " + clientID + " printed output");	//DEBUG
+		//get string representation of objects passed
 		//sequenceVector and tokenVector
 		StringBuffer seqVectorString = new StringBuffer();
 		StringBuffer tokenVectorString = new StringBuffer();
@@ -186,5 +197,6 @@ class Formatter
 		}
 		
 		fout.format(outputFormat, clientID, seqVectorString.toString(), tokenVectorString.toString(), tokenQueueString.toString());
+		fout.close();
 	}
 }

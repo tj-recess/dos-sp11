@@ -196,13 +196,13 @@ public class Client implements Runnable
 						{
 							sequenceVector[receivedReq.clientID - 1] = Math.max(sequenceVector[receivedReq.clientID - 1], receivedReq.sequenceNum);
 						}
-						System.out.println("Received token request from " + cr.getClientConfig(receivedReq.clientID).getAddress());
+//						System.out.println("Received token request from " + cr.getClientConfig(receivedReq.clientID).getAddress());
 						//notify the Token Dealer thread about the reception of request
 						synchronized(tokenWanted)
 						{
 							tokenWanted.notify();
 						}
-						System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: proper request received");
+//						System.out.println("Client" + myConfig.getClientNum() + " - DEBUG: proper request received");
 					}
 				} 
 				catch(InterruptedIOException interruptedEx)
