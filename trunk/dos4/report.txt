@@ -1,0 +1,20 @@
+Report
+
+About the code : The code contains following classes - 
+1. Start - This starts the server as specified in system.properties file. All the remote clients are created through this class.
+2. Client - After being started by Start class (which passes client ID) as parameter, this class initialize 3 threads viz. multicast(multicasts the need of token), listener(listens to all the requests for token) and unicast/tokenDealer (accepts and passes the token).
+3. Formatter - This class helps in displaying formatted output for clients. This class has 2 static methods - a)WriteHeader: this is invoked by Start class and b)PrintOutput which is used by clients to append their output on the reception event of token.
+4. ConfigReader - This reads the data from system.properties file and provides it to various classes as and when required.
+5. ClientConfig - This class holds the configuration values for any client as specified in system.properties or generated dynamically (sleepTime and opTime) and is returned by method of ConfigReader on demand from any Client.
+
+Difficulties faced -
+1. Algorithm was little tough to understand initially but after making repetitive efforts it turned out to be a good learning.
+
+Learning - 
+1. Synchronization among multiple nodes which can be the foundation of peer to peer network.
+2. Making code independent of configuration values by using Properties class.
+3. Use of Datagram sockets and multicasting.
+
+Submitted By - 
+Arpit Tripathi
+UFID - 6135-0118
