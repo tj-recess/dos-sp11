@@ -314,7 +314,7 @@ public class Client implements Runnable
 	private long randomDelay()
 	{
 		//not expecting delay to be more than a second
-		return randomGen.nextLong()%1000;
+		return randomGen.nextInt(1000);
 	}
 
 	private boolean randomDiscard() 

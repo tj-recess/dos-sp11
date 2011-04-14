@@ -72,14 +72,14 @@ public class Start
 				while((output = clientReader.readLine()) != null)
 				synchronized(ClientOutputStreamReader.class)
 				{
-					//System.out.println(prefix + output);
+					System.out.println(prefix + output);
 				}
 				
 				int exitVal = 0;
 				try {exitVal = clientProcID.waitFor();}
 				catch (InterruptedException e) {/*Ignore*/}
 				Runtime.getRuntime().exec("ssh " + clientName + " skill java");
-				//System.out.println(prefix + "died!");
+				System.out.println(prefix + "died!");
 				if(exitVal != 0)
 					Runtime.getRuntime().exec("skill java");
 			}
