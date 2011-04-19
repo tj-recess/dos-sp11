@@ -30,7 +30,7 @@ public class Client implements Runnable
 	private Token myToken = null;
 	private Object tokenWanted;
 	private volatile boolean allExecuted = false;
-	private boolean iamdone = false;
+//	private boolean iamdone = false;
 	private ConfigReader cr;
 	private Object tokenLost;
 	private Thread multicast;

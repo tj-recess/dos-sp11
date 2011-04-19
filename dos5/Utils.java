@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Properties;
-import java.util.Random;
+//import java.util.Random;
 
 class ClientConfig implements Serializable
 {
@@ -17,15 +17,18 @@ class ClientConfig implements Serializable
 	private int sleepTime;
 	private int opTime;
 	
-	public ClientConfig(String name, int cNum, int port)
+	public ClientConfig(String name, int cNum, int port, int sleepTime, int opTime)
 	{
 		this.address = name;
 		clientNum = cNum;
 		this.port = port;
 		
-		Random random = new Random();
-		sleepTime = random.nextInt(1000);
-		opTime = random.nextInt(1000);
+//		Random random = new Random();
+//		sleepTime = random.nextInt(1000);
+//		opTime = random.nextInt(1000);
+		
+		this.sleepTime = sleepTime;
+		this.opTime = opTime;
 	}
 	
 	public int getClientNum()
@@ -89,7 +92,17 @@ class ConfigReader
 			String clientKey = "Client" + i;
 			String clientName = sysProp.getProperty(clientKey);	//client's name starts from 1 to n (not 0 to n-1)
 			String clientPort = sysProp.getProperty(clientKey + ".port");
-			clients.add(new ClientConfig(clientName, i, Integer.parseInt(clientPort)));// i is client's number
+			String sleepTime = sysProp.getProperty(clientKey + ".sleepTime");
+			String opTime = sysProp.getProperty(clientKey + ".opTime");
+			try
+			{
+				clients.add(new ClientConfig(clientName, i, Integer.parseInt(clientPort), Integer.parseInt(sleepTime), Integer.parseInt(opTime)));// i is client's number
+			}
+			catch(NumberFormatException nfe)
+			{
+				System.err.println("Invalid entry in " + filePath + " file");
+			}
+
 		}
 	}
 
