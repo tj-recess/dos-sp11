@@ -326,7 +326,7 @@ public class Client implements Runnable
 	{
 		//assume that 1/4th of the packets are lost because of unreliable network
 		//generate a random number, find num%4 == 0, if yes -> discard it, else -> accept it
-		return (randomGen.nextInt()%2 == 0);
+		return (randomGen.nextInt()%4 == 0);
 	}
 
 	private void receiveToken() 
