@@ -1,0 +1,52 @@
+﻿Report
+
+About the code : The code contains following classes -
+1. Start - This starts the server as specified in system.properties file. All the remote clients are created through this class.
+2. Client - After being started by Start class (which passes client ID) as parameter, this class initialize 3 threads viz. multicast(multicasts the need of token), listener(listens to all the requests for token) and unicast/tokenDealer (accepts and passes the token).
+3. Formatter - This class helps in displaying formatted output for clients. This class has 2 static methods - a)WriteHeader: this is invoked by Start class and b)PrintOutput which is used by clients to append their output on the reception event of token.
+4. ConfigReader - This reads the data from system.properties file and provides it to various classes as and when required. This class prepares the ClientConfig objects after reading all the values like client address, port, sleepTime, opTime etc. from the properties file.
+5. ClientConfig - This class holds the configuration values for any client as specified in system.properties and is returned by method of ConfigReader on demand from any Client.
+
+Loss and Delay of Messages
+
+If network is unreliable, message could be delayed or lost. Both the conditions are simulated in this project in following manner:
+Simulation of Delay: In case of delay, receiver receives the packet after longer than expected time. This condition has to happen before packet reaches receiver so I have simulated this condition on Sender’s side. Sender thread sleeps for regular time indicated by sleepTime in system.properties file. Once it wakes up and is ready to send the next request, it sleeps again for random time between 0 - 1000ms (not expecting delay to be more than 1000ms) before multicast. This way receiver might receive packet on time or delayed by at most 1000ms. 
+
+Simulation of Packet Loss: Packet could be lost somewhere in the network after sender sends it. In my program, receiver receives the packet and randomly discards 50% of packets (assuming network is pretty unreliable) received i.e. it doesn’t take any action even after receiving 50% of packets. This is done by generating a random integer between range of 0 - 10000 and then its modulus 2 with 0. Sender never comes to know if its packet was received successfully or not as there is no acknowledgement. How sender copes up with a condition when there is no acknowledgement is explained in next section.
+
+Receiver’s response to delay: In SKB algorithm receiver thread doesn’t wait for a particular client to send a request. Any client requesting token is appended to the end of queue. This way if there are request which get delayed will arrive eventually and there request will be processed if it’s not been served already by some other client i.e. if SequenceVector[i] > TokenVector[i], client is appended to the end of token queue; otherwise request is ignored. 
+
+Sender’s response to packet loss: If packets is lost, sender has to retry sending the request with same sequence number. Rather than coming up with a suitable time after which sender should retry, my programming assumes that packet is lost if the request was not served within its sleepTime. In this case it sends the packet again with the same Sequence Number and receiver on the other hand treats it as a duplicate request, updates the sequence vector (which would not have any effect if the packet is duplicate) and takes regular action. If the request was served within the sleepTime (i.e. token has been acquired by the client) then sequence number is updated before sending out the next request. 
+
+This simple protocol makes both sender and receiver stateless and program becomes robust even when there are packet loss and network delays.
+
+Effect of delay and loss of messages: I ran the program with various delays in the range of 0-1000 to 0-3000 ms (in step of 500 ms) and calculated program’s execution time with increase in delay. Following execution time was measured - 
+0-1000 - 24.01s
+0-1500 - 28.22s
+0-2000 - 25.16s
+0-2500 - 42.37s
+0-3000 - 39.23s
+This explains that as as network delay increases, time taken by SKB algorithm to finish also increases drastically.
+
+Execution time measured for various loss rate is as follows - 
+20% - 24.59s
+25% - 23.74s
+33% - 26.01s
+50% - 31.55s
+75% - 35.00s
+The varying time accounts for the random delay in network but in general as packet loss rate increases the time taken by SKB algorithm also increases. As my program keeps retransmitting the requests after sleep time, the execution time doesn’t increase a lot.
+
+Sample Output: Partial output is show below
+Member ID    Seq. Vec.  Token V. Token Queue
+=========  =======  ======   ========== 
+       4             2 3 2 2 2    1 2 3 2 2          1,5,2
+       1             0 2 3 2 2    2 2 3 2 2            5,2
+       5             2 3 3 2 3    2 2 3 2 3              2
+       2             3 3 2 0 3    2 3 3 2 3              1
+       1             0 3 3 3 2    3 3 3 2 3              4
+       4             3 3 2 3 2    3 3 3 3 3           NULL
+The inconsistent view of Sequence Vector[i] (e.g. i = 3) shows that some packets were lost or delayed and were resent. Though we can’t differentiate between loss and delay but it clearly indicates that program is capable of generating output even when network is not reliable.
+
+Submitted By -
+Arpit Tripathi
+UFID - 6135-0118
