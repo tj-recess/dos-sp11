@@ -10,6 +10,7 @@ import java.net.MulticastSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.io.StreamCorruptedException;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -230,6 +231,10 @@ public class Client implements Runnable
 				catch(InterruptedIOException interruptedEx)
 				{//ignore
 				}
+				catch(StreamCorruptedException schex)
+				{
+					//ignore
+				}
 				catch (IOException e)
 				{
 					System.err.println("Error receiving datagram packet. **Exception = " + e.getMessage());
@@ -321,7 +326,7 @@ public class Client implements Runnable
 	{
 		//assume that 1/4th of the packets are lost because of unreliable network
 		//generate a random number, find num%4 == 0, if yes -> discard it, else -> accept it
-		return (randomGen.nextInt()%4 == 0);
+		return (randomGen.nextInt()%2 == 0);
 	}
 
 	private void receiveToken() 
