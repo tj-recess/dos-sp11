@@ -72,28 +72,33 @@ class ConfigReader
 		try {
 			sysProp.load(new FileInputStream(filePath));
 		} catch (FileNotFoundException e) {
-			System.err.println("\"system.properties\" - File not found, Exiting!");
+			System.err.println("\"" + filePath + "\" - File not found, Exiting!");
 			System.exit(-1);
 		} catch (IOException ioex) {
-			System.err.println("\"system.properties\" - IO Exception! " + ioex.getMessage() + " Exiting!");
+			System.err.println("\"" + filePath + "\" - IO Exception! " + ioex.getMessage() + " Exiting!");
 			System.exit(-1);
 		}
 		
 		//now read all the attributes in config file
-		multicastAddress = sysProp.getProperty("Multicast.address");
-		multicastPort = Integer.parseInt(sysProp.getProperty("Multicast.port"));
-		numClients = Integer.parseInt(sysProp.getProperty("ClientNum"));
-		numAccesses = Integer.parseInt(sysProp.getProperty("numberOfRequests"));
-		
+		try{
+			multicastAddress = sysProp.getProperty("Multicast.address").trim();
+			multicastPort = Integer.parseInt(sysProp.getProperty("Multicast.port").trim());
+			numClients = Integer.parseInt(sysProp.getProperty("ClientNum").trim());
+			numAccesses = Integer.parseInt(sysProp.getProperty("NumberOfRequests").trim());
+		}
+		catch(NumberFormatException nfex)
+		{
+			System.err.println("Invalid entry in " + filePath + " file.");
+		}
 		//setup data structures so that they can be passed to the actual server
 		//setup clients from config file
 		for(int i = 1; i <= numClients; i++)
 		{
 			String clientKey = "Client" + i;
-			String clientName = sysProp.getProperty(clientKey);	//client's name starts from 1 to n (not 0 to n-1)
-			String clientPort = sysProp.getProperty(clientKey + ".port");
-			String sleepTime = sysProp.getProperty(clientKey + ".sleepTime");
-			String opTime = sysProp.getProperty(clientKey + ".opTime");
+			String clientName = sysProp.getProperty(clientKey).trim();	//client's name starts from 1 to n (not 0 to n-1)
+			String clientPort = sysProp.getProperty(clientKey + ".port").trim();
+			String sleepTime = sysProp.getProperty(clientKey + ".sleepTime").trim();
+			String opTime = sysProp.getProperty(clientKey + ".opTime").trim();
 			try
 			{
 				clients.add(new ClientConfig(clientName, i, Integer.parseInt(clientPort), Integer.parseInt(sleepTime), Integer.parseInt(opTime)));// i is client's number
