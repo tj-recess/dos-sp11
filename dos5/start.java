@@ -3,16 +3,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 
-public class Start
+public class start
 {
 	private ConfigReader cr;
-	Start()
+	start()
 	{
 		cr = new ConfigReader("system.properties");
 	}
 	public static void main(String[] args)
 	{
-		Start s = new Start();
+		start s = new start();
 		s.initClients();
 	}
 
