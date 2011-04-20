@@ -174,7 +174,7 @@ class Formatter
 		try
 		{
 //			myFout = new PrintWriter(new FileWriter("request" + clientID + ".log", true), true);
-			myFout = new PrintWriter(new FileWriter("request.log", true), true);
+			myFout = new PrintWriter(new FileWriter("log", true), true);
 		}
 		catch (IOException e) {
 			System.err.println("File \"request.log\" can't be created, make sure you have access to the direcctory.");
